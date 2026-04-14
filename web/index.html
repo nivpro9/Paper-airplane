@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Retro Arcade</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- NAME ENTRY -->
+<div id="screen-name" class="screen">
+  <div class="arcade-frame">
+    <h1 class="neon cyan">RETRO ARCADE</h1>
+    <h2 class="neon purple">MACHINE</h2>
+    <div class="badges">
+      <span class="badge y">PAC-MAN</span>
+      <span class="badge p">GALAGA</span>
+      <span class="badge c">DONKEY KONG</span>
+      <span class="badge o">STREET FIGHTER</span>
+    </div>
+    <p class="label">ENTER YOUR NAME</p>
+    <input id="playerName" type="text" maxlength="14" placeholder="YOUR NAME" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+    <button class="btn c" id="startBtn">▶ START GAME</button>
+  </div>
+</div>
+
+<!-- MENU -->
+<div id="screen-menu" class="screen">
+  <div class="menu-top">
+    <span id="menu-player" class="neon cyan" style="font-size:14px"></span>
+    <h1 class="neon pink">SELECT GAME</h1>
+    <button class="btn c sm" id="scoresBtn">SCORES</button>
+  </div>
+  <div class="game-grid">
+    <div class="card y" data-game="pacman">
+      <div class="c-icon">●●●</div>
+      <div class="c-title">PAC-MAN</div>
+      <div class="c-desc">Swipe to move · eat all dots</div>
+    </div>
+    <div class="card p" data-game="galaga">
+      <div class="c-icon">▲ ▲ ▲</div>
+      <div class="c-title">GALAGA</div>
+      <div class="c-desc">Touch to move · tap to shoot</div>
+    </div>
+    <div class="card c" data-game="donkeykong">
+      <div class="c-icon">🦍</div>
+      <div class="c-title">DONKEY KONG</div>
+      <div class="c-desc">Climb platforms · dodge barrels</div>
+    </div>
+    <div class="card o" data-game="streetfighter">
+      <div class="c-icon">👊</div>
+      <div class="c-title">STREET FIGHTER II</div>
+      <div class="c-desc">Fight the CPU · land combos</div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen" style="flex-direction:column">
+  <div class="game-hud">
+    <button class="btn r sm" id="exitGame">✕ EXIT</button>
+    <span id="game-title" class="neon" style="font-size:14px"></span>
+    <span id="game-score" class="neon yellow" style="font-size:16px;font-weight:bold">0</span>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Pac-Man controls -->
+  <div id="ctrl-pacman" class="ctrl hidden">
+    <div class="dpad">
+      <div class="dpad-row"><button class="db" data-k="ArrowUp">▲</button></div>
+      <div class="dpad-row">
+        <button class="db" data-k="ArrowLeft">◀</button>
+        <div style="width:34px"></div>
+        <button class="db" data-k="ArrowRight">▶</button>
+      </div>
+      <div class="dpad-row"><button class="db" data-k="ArrowDown">▼</button></div>
+    </div>
+    <div style="color:#555;font-size:11px;text-align:center">or SWIPE<br>on screen</div>
+  </div>
+
+  <!-- Galaga controls -->
+  <div id="ctrl-galaga" class="ctrl hidden">
+    <button class="ab mv" id="g-left">◀</button>
+    <button class="ab fire" id="g-fire">FIRE</button>
+    <button class="ab mv" id="g-right">▶</button>
+  </div>
+
+  <!-- Donkey Kong controls -->
+  <div id="ctrl-dk" class="ctrl hidden">
+    <div class="dpad">
+      <div class="dpad-row"><button class="db" data-k="ArrowUp">▲</button></div>
+      <div class="dpad-row">
+        <button class="db" data-k="ArrowLeft">◀</button>
+        <div style="width:34px"></div>
+        <button class="db" data-k="ArrowRight">▶</button>
+      </div>
+      <div class="dpad-row"><button class="db" data-k="ArrowDown">▼</button></div>
+    </div>
+    <button class="ab jump" id="dk-jump">JUMP</button>
+  </div>
+
+  <!-- Street Fighter controls -->
+  <div id="ctrl-sf" class="ctrl hidden">
+    <div class="dpad">
+      <div class="dpad-row"><button class="db" data-k="w">▲</button></div>
+      <div class="dpad-row">
+        <button class="db" data-k="a">◀</button>
+        <div style="width:34px"></div>
+        <button class="db" data-k="d">▶</button>
+      </div>
+      <div class="dpad-row" style="height:34px"></div>
+    </div>
+    <div class="sf-btns">
+      <button class="ab punch" data-k="j">PUNCH</button>
+      <button class="ab kick" data-k="k">KICK</button>
+      <button class="ab block" data-k="l">BLOCK</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCORES -->
+<div id="screen-scores" class="screen">
+  <h1 class="neon yellow" style="font-size:clamp(24px,6vw,42px)">HIGH SCORES</h1>
+  <div class="scores-grid" id="scores-grid"></div>
+  <button class="btn c" id="backScores">← BACK</button>
+</div>
+
+<script src="js/pacman.js"></script>
+<script src="js/galaga.js"></script>
+<script src="js/donkey_kong.js"></script>
+<script src="js/street_fighter.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
