@@ -1,38 +1,55 @@
-# 🕹️ Retro Arcade Machine
+# Retro Arcade Machine
 
-A retro arcade machine built in Python + Pygame, featuring 4 classic games with neon LED styling.
+A retro arcade machine with 4 classic games, built in HTML5/JavaScript for web and mobile.
+Also includes a Python/Pygame desktop version.
+
+## Play Online
+Open `web/index.html` in any browser — or host on GitHub Pages for mobile access.
 
 ## Games
-| Game | Controls |
-|------|----------|
-| **Pac-Man** | Arrow Keys to move, eat dots, avoid ghosts |
-| **Galaga** | ←/→ Move, SPACE Shoot |
-| **Donkey Kong** | ←/→/↑/↓ Move, SPACE/UP Jump |
-| **Street Fighter II** | A/D Move, W Jump, J Punch, K Kick, L Block |
+
+| Game | Desktop Controls | Mobile |
+|------|-----------------|--------|
+| **Pac-Man** | Arrow Keys | Swipe / D-pad |
+| **Galaga** | Arrow Keys + Space | Buttons |
+| **Donkey Kong** | Arrow Keys + Space | D-pad + Jump |
+| **Street Fighter II** | A/D/W + J/K/L | Buttons |
 
 ## Features
 - Name entry screen
-- Neon LED arcade machine UI with particle effects
-- High score leaderboard (saved to JSON)
+- Neon LED arcade UI with particle effects
+- High score leaderboard (saved to localStorage)
 - Scanline CRT effect
 - Animated starfield background
+- Full mobile touch support
 
-## Requirements
+## Web Version (recommended)
+No installation needed — works in any browser on phone or desktop.
 ```
-pip install pygame
+open web/index.html
 ```
 
-## Run
+## Python Version
+Requires Python 3.x and pygame-ce:
 ```
+pip install pygame-ce
 python main.py
 ```
 
-## Files
+## Project Structure
 ```
-main.py          - Arcade machine UI, name entry, menu, scoreboard
-scores.py        - JSON-based high score management
-pacman.py        - Pac-Man with maze, ghosts, power pellets
-galaga.py        - Space shooter with dive-bombing enemies
-donkey_kong.py   - Platformer with barrels and ladders
-street_fighter.py - 1v1 fighting game vs CPU
+web/
+  index.html          - Main arcade UI
+  css/style.css       - Neon styling
+  js/main.js          - App controller + score storage
+  js/pacman.js        - Pac-Man
+  js/galaga.js        - Galaga
+  js/donkey_kong.js   - Donkey Kong
+  js/street_fighter.js- Street Fighter II
+main.py               - Python arcade UI
+pacman.py             - Python Pac-Man
+galaga.py             - Python Galaga
+donkey_kong.py        - Python Donkey Kong
+street_fighter.py     - Python Street Fighter II
+scores.py             - Score management
 ```
