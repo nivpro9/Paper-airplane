@@ -160,9 +160,16 @@ function createAmmoCrate() {
 // ── COIN ─────────────────────────────────────────────────
 function spawnCoin() {
   const n = 1 + Math.floor(Math.random() * 3);
-  const y = H * 0.12 + Math.random() * H * 0.76;
+  // Spawn coins in the middle flyable zone, near the gap of recent obstacles
+  let centerY = H * 0.5;
+  if (obstacles.length > 0) {
+    const lastPillar = [...obstacles].reverse().find(o => o.type === 'pillar');
+    if (lastPillar) centerY = lastPillar.gapY;
+  }
+  // Keep coins within safe vertical band (avoid ceiling/floor)
+  centerY = Math.max(H * 0.22, Math.min(H * 0.72, centerY));
   for (let i = 0; i < n; i++)
-    coins.push({ x: W + 40 + i * 34, y: y + (Math.random() - 0.5) * 30, r: 12, collected: false, anim: Math.random() * Math.PI * 2 });
+    coins.push({ x: W + 60 + i * 34, y: centerY + (Math.random() - 0.5) * 50, r: 12, collected: false, anim: Math.random() * Math.PI * 2 });
 }
 
 // ── PARTICLES ────────────────────────────────────────────
@@ -279,10 +286,10 @@ function initGame(levelNum) {
 function update(dt) {
   if (!player.alive) return;
 
-  // Slide runway in early
+  // Slide runway in from right
   if (landing) {
-    const targetRwX = W * 0.60;
-    if (landing.runway.x > targetRwX) landing.runway.x -= Math.max(speed * 2.5, 8);
+    const targetRwX = W * 0.65;
+    if (landing.runway.x > targetRwX) landing.runway.x -= Math.max(speed * 3, 10);
   }
 
   // Distance (calibrated: ~10-27 m/s depending on speed level)
@@ -446,6 +453,7 @@ function update(dt) {
     if (d < c.r + 22) {
       c.collected = true; sessionCoins++;
       spawnParticles(c.x, c.y, '#FFD700', 5);
+      Snd.play('coin');
       return false;
     }
     return c.x > -20;
@@ -488,22 +496,16 @@ function update(dt) {
   // ── HUD UPDATE ──
   updateHUD();
 
-  // ── PRE-SPAWN RUNWAY at 80% of goal so it's ready ──
-  if (!landing && distance >= levelData.goal * 0.80) {
+  // ── SPAWN RUNWAY when goal is reached ──
+  if (!landing && distance >= levelData.goal) {
     spawnTimer = 999; // stop obstacles
     const veh = VEHICLES[Save.data.activeVehicle];
     landing = {
-      phase: 'approach',
-      timer: 0,
       runway: { x: W + 200, y: H * 0.76, type: veh.landing },
-      goalReached: false,
+      goalReached: true,
     };
     document.getElementById('shoot-btn').classList.add('hidden');
-  }
-
-  // ── MARK GOAL REACHED ──
-  if (landing && !landing.goalReached && distance >= levelData.goal) {
-    landing.goalReached = true;
+    Snd.play('landing_start');
   }
 
   // ── CHECK IF PLAYER LANDED ON RUNWAY ──
@@ -541,7 +543,7 @@ function updateHUD() {
 // ── LANDING SEQUENCE ─────────────────────────────────────
 // Player flies themselves onto the runway — no autopilot
 function checkLandingTouch() {
-  if (!landing || !landing.goalReached) return;
+  if (!landing) return;
   const rw = landing.runway;
   // Landing zone: on top of the runway surface
   const landX = rw.x - 60;
@@ -550,8 +552,9 @@ function checkLandingTouch() {
   const dy = player.y - landY;
   if (Math.abs(dx) < 90 && Math.abs(dy) < 28) {
     spawnParticles(player.x, player.y, '#FFD700', 20);
-    player.alive = false; // stop loop
-    setTimeout(showLevelComplete, 400);
+    Snd.play('land');
+    player.alive = false;
+    setTimeout(showLevelComplete, 500);
   }
 }
 
@@ -927,6 +930,7 @@ function showScreen(id) {
 function showMenu() {
   gameState = 'menu';
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
+  Snd.stopMusic();
   document.getElementById('shoot-btn').classList.add('hidden');
   document.getElementById('menu-coins').textContent = Save.data.coins;
   document.getElementById('menu-level').textContent = 'LVL ' + Save.data.currentLevel;
@@ -951,6 +955,7 @@ function beginLevel(lvlNum) {
   canvas.height = canvas.offsetHeight;
   W = canvas.width; H = canvas.height;
   initGame(lvlNum);
+  Snd.startMusic();
   lastTime = null;
   frameId = requestAnimationFrame(loop);
 }
@@ -1152,6 +1157,117 @@ function setupTouch() {
   shootBtn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); shoot(); }, { passive: false });
   shootBtn.addEventListener('mousedown',  e => { e.stopPropagation(); shoot(); });
 }
+
+// ── AUDIO ─────────────────────────────────────────────────
+const Snd = (() => {
+  let ctx = null;
+  let musicNode = null;
+  let musicGain = null;
+  let musicPlaying = false;
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return ctx;
+  }
+
+  function play(type) {
+    try {
+      const ac = getCtx();
+      if (ac.state === 'suspended') ac.resume();
+      if (type === 'coin') {
+        // quick ascending ding
+        [660, 880, 1100].forEach((freq, i) => {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.connect(g); g.connect(ac.destination);
+          o.frequency.value = freq;
+          o.type = 'sine';
+          const t = ac.currentTime + i * 0.06;
+          g.gain.setValueAtTime(0.18, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          o.start(t); o.stop(t + 0.13);
+        });
+      } else if (type === 'land') {
+        // thud + success chime
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.connect(g); g.connect(ac.destination);
+        o.type = 'sine'; o.frequency.setValueAtTime(220, ac.currentTime);
+        o.frequency.exponentialRampToValueAtTime(80, ac.currentTime + 0.3);
+        g.gain.setValueAtTime(0.5, ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.35);
+        o.start(); o.stop(ac.currentTime + 0.36);
+        // chime
+        [523, 659, 784, 1047].forEach((freq, i) => {
+          const o2 = ac.createOscillator(), g2 = ac.createGain();
+          o2.connect(g2); g2.connect(ac.destination);
+          o2.frequency.value = freq; o2.type = 'sine';
+          const t = ac.currentTime + 0.2 + i * 0.1;
+          g2.gain.setValueAtTime(0.15, t);
+          g2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+          o2.start(t); o2.stop(t + 0.26);
+        });
+      } else if (type === 'landing_start') {
+        // whoosh
+        const bufLen = ac.sampleRate * 0.4;
+        const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+        const src = ac.createBufferSource();
+        const filt = ac.createBiquadFilter();
+        const g = ac.createGain();
+        src.buffer = buf; filt.type = 'bandpass'; filt.frequency.value = 1200;
+        src.connect(filt); filt.connect(g); g.connect(ac.destination);
+        g.gain.setValueAtTime(0.3, ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.4);
+        src.start(); src.stop(ac.currentTime + 0.41);
+      }
+    } catch(e) {}
+  }
+
+  // Simple looping background music using oscillators
+  const MELODY = [
+    [392,0.3],[440,0.15],[494,0.15],[523,0.3],[494,0.15],[440,0.15],
+    [392,0.3],[392,0.15],[349,0.15],[330,0.3],[294,0.3],
+    [330,0.15],[349,0.15],[392,0.4],[0,0.2],
+  ];
+
+  function startMusic() {
+    if (musicPlaying) return;
+    try {
+      const ac = getCtx();
+      if (ac.state === 'suspended') ac.resume();
+      musicGain = ac.createGain();
+      musicGain.gain.value = 0.06;
+      musicGain.connect(ac.destination);
+      musicPlaying = true;
+      let t = ac.currentTime + 0.1;
+      function scheduleLoop() {
+        if (!musicPlaying) return;
+        MELODY.forEach(([freq, dur]) => {
+          if (freq > 0) {
+            const o = ac.createOscillator(), g = ac.createGain();
+            o.type = 'square'; o.frequency.value = freq;
+            o.connect(g); g.connect(musicGain);
+            g.gain.setValueAtTime(0.5, t);
+            g.gain.setValueAtTime(0.0, t + dur - 0.02);
+            o.start(t); o.stop(t + dur);
+          }
+          t += dur;
+        });
+        // schedule next loop slightly before end
+        const loopLen = MELODY.reduce((s,[,d])=>s+d, 0);
+        setTimeout(scheduleLoop, (loopLen - 0.5) * 1000);
+      }
+      scheduleLoop();
+    } catch(e) {}
+  }
+
+  function stopMusic() {
+    musicPlaying = false;
+    if (musicGain) { musicGain.gain.setValueAtTime(musicGain.gain.value, 0); musicGain = null; }
+  }
+
+  return { play, startMusic, stopMusic };
+})();
 
 // ── INIT ─────────────────────────────────────────────────
 window.addEventListener('load', () => {
