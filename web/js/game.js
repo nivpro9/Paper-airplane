@@ -75,11 +75,18 @@ const Save = {
   },
   data: null,
   fresh() { return JSON.parse(JSON.stringify(this.defaults)); },
+  save() {
+    const json = JSON.stringify(this.data);
+    try { localStorage.setItem(this.KEY, json); } catch(e) {}
+    try { sessionStorage.setItem(this.KEY, json); } catch(e) {}
+  },
   load() {
-    try { this.data = JSON.parse(localStorage.getItem(this.KEY)); } catch { this.data = null; }
+    let raw = null;
+    try { raw = localStorage.getItem(this.KEY); } catch(e) {}
+    if (!raw) { try { raw = sessionStorage.getItem(this.KEY); } catch(e) {} }
+    try { this.data = raw ? JSON.parse(raw) : null; } catch { this.data = null; }
     if (!this.data) {
       this.data = this.fresh();
-      // Migrate old save
       try {
         const old = JSON.parse(localStorage.getItem('pfe_save'));
         if (old) {
@@ -92,7 +99,6 @@ const Save = {
         }
       } catch {}
     }
-    // Safety
     if (!this.data.upgrades) this.data.upgrades = { speed:0,control:0,magnet:0,shield:0,cannon:0 };
     if (this.data.upgrades.cannon === undefined) this.data.upgrades.cannon = 0;
     if (!this.data.ownedVehicles) this.data.ownedVehicles = [0];
@@ -100,7 +106,6 @@ const Save = {
     if (!this.data.bestLevel) this.data.bestLevel = 1;
     if (this.data.tutorialDone === undefined) this.data.tutorialDone = false;
   },
-  save() { localStorage.setItem(this.KEY, JSON.stringify(this.data)); },
 };
 
 // ── GAME STATE ───────────────────────────────────────────
@@ -284,6 +289,9 @@ function initGame(levelNum) {
 
 // ── UPDATE ───────────────────────────────────────────────
 function update(dt) {
+  // Slide animation runs even after player.alive = false
+  if (landing && landing.sliding) { updateSlide(dt); return; }
+
   if (!player.alive) return;
 
   // Slide runway in — stops just past the player so they can fly onto it
@@ -541,20 +549,39 @@ function updateHUD() {
 }
 
 // ── LANDING SEQUENCE ─────────────────────────────────────
-// Player flies themselves onto the runway — no autopilot
 function checkLandingTouch() {
-  if (!landing) return;
+  if (!landing || landing.sliding) return;
   const rw = landing.runway;
-  // Runway must be close to player x first
-  if (rw.x > player.x + 120) return;
-  // Player needs to fly down to runway height
+  if (rw.x > player.x + 120) return; // runway not close yet
   const landY = rw.y - 16;
   const dy = player.y - landY;
-  if (Math.abs(dy) < 32) {
-    spawnParticles(player.x, player.y, '#FFD700', 20);
+  if (Math.abs(dy) < 36) {
+    // Start slide animation
+    landing.sliding = true;
+    landing.slideSpeed = speed + 2; // initial slide speed
+    player.vy = 0;
     Snd.play('land');
+    spawnParticles(player.x, player.y, '#FFD700', 16);
+  }
+}
+
+function updateSlide(dt) {
+  if (!landing || !landing.sliding) return;
+  const rw = landing.runway;
+  const landY = rw.y - 16;
+  // Snap plane to runway surface
+  player.y += (landY - player.y) * 0.25;
+  player.vy = 0;
+  // Slide forward (plane moves right, decelerating)
+  player.x += landing.slideSpeed * dt * 30;
+  landing.slideSpeed *= 0.88; // decelerate
+  // Emit dust particles while sliding
+  if (Math.random() < 0.4) spawnParticles(player.x - 10, player.y + 12, '#ccccaa', 2);
+  // Done when nearly stopped
+  if (landing.slideSpeed < 0.5) {
+    landing.sliding = false;
     player.alive = false;
-    setTimeout(showLevelComplete, 500);
+    setTimeout(showLevelComplete, 300);
   }
 }
 
