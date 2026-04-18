@@ -642,10 +642,58 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
     ctx.fillStyle='#37474f'; ctx.beginPath(); ctx.moveTo(-24,0); ctx.lineTo(-32,-22); ctx.lineTo(-28,-10); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(-24,0); ctx.lineTo(-32,22); ctx.lineTo(-28,10); ctx.closePath(); ctx.fill();
     ctx.strokeStyle='rgba(0,255,200,0.3)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(36,0); ctx.lineTo(-10,-6); ctx.lineTo(-32,-22); ctx.stroke(); ctx.beginPath(); ctx.moveTo(36,0); ctx.lineTo(-10,6); ctx.lineTo(-32,22); ctx.stroke();
   } else if (id === 9) {
-    ctx.fillStyle='#263238'; ctx.beginPath(); ctx.moveTo(38,0); ctx.lineTo(10,-6); ctx.lineTo(-16,-38); ctx.lineTo(-28,-12); ctx.lineTo(-32,0); ctx.lineTo(-28,12); ctx.lineTo(-16,38); ctx.lineTo(10,6); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='rgba(0,220,255,0.45)'; ctx.beginPath(); ctx.ellipse(14,0,11,5,0,0,Math.PI*2); ctx.fill();
-    [-6,6].forEach(ey=>[-12,0].forEach(ex=>{ ctx.fillStyle='rgba(0,255,150,0.5)'; ctx.beginPath(); ctx.ellipse(ex,ey,5,3,0,0,Math.PI*2); ctx.fill(); }));
-    ctx.strokeStyle='rgba(0,255,180,0.4)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(38,0); ctx.lineTo(-32,0); ctx.stroke();
+    // B-2 Spirit — flying wing with iconic W trailing edge
+    // Main wing body (very dark gray)
+    ctx.fillStyle = '#1c2526';
+    ctx.beginPath();
+    ctx.moveTo(30, 0);          // nose tip
+    ctx.lineTo(10, -7);         // fuselage top
+    ctx.lineTo(-2, -44);        // left wing tip (top in game = one wing)
+    // W trailing edge (top half)
+    ctx.lineTo(-16, -42);       // outer trailing
+    ctx.lineTo(-24, -22);       // notch inward
+    ctx.lineTo(-18, -14);       // notch peak
+    ctx.lineTo(-28, -4);        // inner trailing
+    ctx.lineTo(-30, 0);         // center trailing
+    // Mirror bottom half
+    ctx.lineTo(-28, 4);
+    ctx.lineTo(-18, 14);
+    ctx.lineTo(-24, 22);
+    ctx.lineTo(-16, 42);
+    ctx.lineTo(-2, 44);         // right wing tip
+    ctx.lineTo(10, 7);
+    ctx.closePath();
+    ctx.fill();
+
+    // Surface shading — lighter upper panel
+    ctx.fillStyle = 'rgba(80,100,110,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(30, 0); ctx.lineTo(10, -7); ctx.lineTo(-2, -44);
+    ctx.lineTo(-16, -42); ctx.lineTo(-24, -22); ctx.lineTo(-18, -14);
+    ctx.lineTo(-28, -4); ctx.lineTo(-30, 0); ctx.lineTo(10, -2);
+    ctx.closePath(); ctx.fill();
+
+    // Center fuselage hump
+    ctx.fillStyle = '#2e3c43';
+    ctx.beginPath(); ctx.ellipse(6, 0, 16, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Cockpit window
+    ctx.fillStyle = 'rgba(140,220,255,0.7)';
+    ctx.beginPath(); ctx.ellipse(18, 0, 5, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Leading edge highlight
+    ctx.strokeStyle = 'rgba(150,200,220,0.25)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(30, 0); ctx.lineTo(10, -7); ctx.lineTo(-2, -44);
+    ctx.moveTo(30, 0); ctx.lineTo(10, 7); ctx.lineTo(-2, 44);
+    ctx.stroke();
+
+    // Engine exhausts (2 on each side)
+    [[-8,-10],[-8,10],[-14,-20],[-14,20]].forEach(([ex,ey]) => {
+      ctx.fillStyle = 'rgba(255,120,30,0.6)';
+      ctx.beginPath(); ctx.ellipse(ex, ey, 4, 2, 0, 0, Math.PI * 2); ctx.fill();
+    });
   }
   ctx.restore();
 }
