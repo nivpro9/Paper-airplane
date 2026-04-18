@@ -10,6 +10,37 @@
 </head>
 <body>
 
+<!-- TUTORIAL MODAL (first time only) -->
+<div id="tutorial-modal" class="tutorial-modal hidden">
+  <div class="tut-box">
+    <div class="tut-icon">✈️</div>
+    <h2 class="tut-title">HOW TO PLAY</h2>
+    <div class="tut-steps">
+      <div class="tut-step">
+        <span class="tut-step-icon">🕹️</span>
+        <span>Use the <b>joystick</b> at the bottom of the screen to fly up, down, and sideways</span>
+      </div>
+      <div class="tut-step">
+        <span class="tut-step-icon">🟩</span>
+        <span>Fly through the <b>gaps</b> in the pillars — don't crash!</span>
+      </div>
+      <div class="tut-step">
+        <span class="tut-step-icon">📦</span>
+        <span>Collect <b>ammo boxes</b> to charge your cannon (buy Cannon in Upgrades)</span>
+      </div>
+      <div class="tut-step">
+        <span class="tut-step-icon">🪙</span>
+        <span>Grab <b>coins</b> to spend on vehicles and upgrades</span>
+      </div>
+      <div class="tut-step">
+        <span class="tut-step-icon">🏁</span>
+        <span>Reach the <b>distance goal</b> to complete the level and land!</span>
+      </div>
+    </div>
+    <button id="tut-start-btn" class="btn-play">LET'S FLY!</button>
+  </div>
+</div>
+
 <!-- MENU -->
 <div id="screen-menu" class="screen active">
   <div class="menu-sky"></div>
@@ -25,7 +56,8 @@
     </div>
     <div class="stats-row">
       <div class="stat"><span class="stat-icon">🪙</span><span id="menu-coins">0</span></div>
-      <div class="stat"><span class="stat-icon">🏆</span><span id="menu-best">0</span></div>
+      <div class="stat"><span id="menu-level">LVL 1</span></div>
+      <div class="stat"><span id="menu-best">BEST 1</span></div>
     </div>
     <button id="playBtn" class="btn-play">PLAY</button>
     <button id="shopBtn" class="btn-shop">🔧 UPGRADES</button>
@@ -38,17 +70,17 @@
   <button id="shoot-btn" class="shoot-btn hidden">🔫</button>
   <div class="game-hud">
     <div class="hud-left">
-      <span class="hud-label">SCORE</span>
-      <span id="hud-score">0</span>
+      <span class="hud-label">LEVEL</span>
+      <span id="hud-level">1</span>
     </div>
     <div class="hud-center">
       <span class="hud-label">DISTANCE</span>
       <span id="hud-distance">0m</span>
-      <span id="hud-pb-badge" class="pb-badge hidden">🏆 NEW BEST!</span>
+      <span id="hud-goal" class="hud-goal">/ 250m</span>
     </div>
     <div class="hud-right">
-      <span class="hud-label">🪙</span>
-      <span id="hud-coins">0</span>
+      <span class="hud-label">AMMO</span>
+      <span id="hud-ammo" class="hud-ammo-dots">—</span>
     </div>
   </div>
 </div>
@@ -56,26 +88,51 @@
 <!-- GAME OVER -->
 <div id="screen-gameover" class="screen">
   <div class="gameover-content">
-    <div id="go-crash-icon" class="crash-icon">💥</div>
+    <div class="crash-icon">💥</div>
     <h1 class="go-title">CRASHED!</h1>
     <div class="go-stats">
       <div class="go-stat">
-        <div class="go-stat-label">SCORE</div>
-        <div class="go-stat-value" id="go-score">0</div>
+        <div class="go-stat-label">LEVEL</div>
+        <div class="go-stat-value" id="go-level">1</div>
       </div>
       <div class="go-stat">
-        <div class="go-stat-label">BEST</div>
-        <div class="go-stat-value" id="go-best">0</div>
+        <div class="go-stat-label">DISTANCE</div>
+        <div class="go-stat-value" id="go-distance" style="font-size:18px">0m</div>
       </div>
       <div class="go-stat">
         <div class="go-stat-label">COINS</div>
         <div class="go-stat-value" id="go-coins">+0</div>
       </div>
     </div>
-    <div id="go-newbest" class="new-best hidden">🏆 NEW BEST!</div>
-    <button id="retryBtn" class="btn-play">PLAY AGAIN</button>
+    <button id="retryBtn" class="btn-play">TRY AGAIN</button>
     <button id="goShopBtn" class="btn-shop">🔧 UPGRADES</button>
     <button id="goMenuBtn" class="btn-menu">MENU</button>
+  </div>
+</div>
+
+<!-- LEVEL COMPLETE -->
+<div id="screen-levelcomplete" class="screen">
+  <div class="levelcomplete-content">
+    <div class="lc-icon">🎉</div>
+    <h1 class="lc-title">LEVEL COMPLETE!</h1>
+    <div class="lc-stats">
+      <div class="lc-stat">
+        <div class="lc-stat-label">LEVEL</div>
+        <div class="lc-stat-value" id="lc-level">1</div>
+      </div>
+      <div class="lc-stat">
+        <div class="lc-stat-label">DISTANCE</div>
+        <div class="lc-stat-value" id="lc-distance">0m</div>
+      </div>
+      <div class="lc-stat">
+        <div class="lc-stat-label">COINS</div>
+        <div class="lc-stat-value" id="lc-coins">+0</div>
+      </div>
+    </div>
+    <div id="lc-biome" class="lc-biome hidden"></div>
+    <button id="nextLevelBtn" class="btn-play">NEXT LEVEL ›</button>
+    <button id="lcShopBtn" class="btn-shop">🔧 UPGRADES</button>
+    <button id="lcMenuBtn" class="btn-menu">MENU</button>
   </div>
 </div>
 
