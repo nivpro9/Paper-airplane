@@ -164,17 +164,23 @@ function createAmmoCrate() {
 
 // ── COIN ─────────────────────────────────────────────────
 function spawnCoin() {
-  const n = 1 + Math.floor(Math.random() * 3);
-  // Spawn coins in the middle flyable zone, near the gap of recent obstacles
+  // Only spawn coins inside the gap of the nearest upcoming pillar
+  const nextPillar = obstacles.find(o => o.type === 'pillar' && o.x > W * 0.5);
   let centerY = H * 0.5;
-  if (obstacles.length > 0) {
-    const lastPillar = [...obstacles].reverse().find(o => o.type === 'pillar');
-    if (lastPillar) centerY = lastPillar.gapY;
+  let gapH = H * levelData.gapFraction;
+  if (nextPillar) {
+    centerY = nextPillar.gapY;
+    gapH = nextPillar.gap;
   }
-  // Keep coins within safe vertical band (avoid ceiling/floor)
-  centerY = Math.max(H * 0.22, Math.min(H * 0.72, centerY));
-  for (let i = 0; i < n; i++)
-    coins.push({ x: W + 60 + i * 34, y: centerY + (Math.random() - 0.5) * 50, r: 12, collected: false, anim: Math.random() * Math.PI * 2 });
+  // Clamp to safe zone
+  centerY = Math.max(H * 0.22, Math.min(H * 0.75, centerY));
+  // 1–2 coins in a horizontal line, spaced within the gap
+  const n = Math.random() < 0.4 ? 2 : 1;
+  const spread = Math.min(gapH * 0.25, 22);
+  for (let i = 0; i < n; i++) {
+    const offsetY = (Math.random() - 0.5) * spread;
+    coins.push({ x: W + 50 + i * 30, y: centerY + offsetY, r: 12, collected: false, anim: Math.random() * Math.PI * 2 });
+  }
 }
 
 // ── PARTICLES ────────────────────────────────────────────
@@ -372,7 +378,7 @@ function update(dt) {
   }
 
   coinTimer -= dt;
-  if (coinTimer <= 0) { spawnCoin(); coinTimer = 0.8 + Math.random() * 0.6; }
+  if (coinTimer <= 0) { spawnCoin(); coinTimer = 2.0 + Math.random() * 2.0; }
 
   // Ammo crate spawn (only if cannon unlocked)
   if (upg.cannon > 0) {
@@ -524,10 +530,12 @@ function handleHit() {
   if (shieldHits > 0) {
     shieldHits--; player.invincible = 1.5;
     spawnParticles(player.x, player.y, '#4CAF50', 10);
+    Snd.play('shield');
     return;
   }
   player.alive = false;
   spawnParticles(player.x, player.y, VEHICLES[Save.data.activeVehicle].color, 16);
+  Snd.play('crash');
   setTimeout(showGameOver, 800);
 }
 
@@ -1294,6 +1302,36 @@ const Snd = (() => {
         g.gain.setValueAtTime(0.3, ac.currentTime);
         g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.4);
         src.start(); src.stop(ac.currentTime + 0.41);
+      } else if (type === 'crash') {
+        // explosion thud + noise burst
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(180, ac.currentTime);
+        o.frequency.exponentialRampToValueAtTime(40, ac.currentTime + 0.5);
+        o.connect(g); g.connect(ac.destination);
+        g.gain.setValueAtTime(0.6, ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.5);
+        o.start(); o.stop(ac.currentTime + 0.51);
+        // noise burst
+        const nLen = ac.sampleRate * 0.35;
+        const nBuf = ac.createBuffer(1, nLen, ac.sampleRate);
+        const nd = nBuf.getChannelData(0);
+        for (let i = 0; i < nLen; i++) nd[i] = (Math.random() * 2 - 1) * (1 - i / nLen) * 0.8;
+        const ns = ac.createBufferSource(), ng = ac.createGain();
+        ns.buffer = nBuf; ns.connect(ng); ng.connect(ac.destination);
+        ng.gain.setValueAtTime(0.5, ac.currentTime);
+        ng.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.35);
+        ns.start(); ns.stop(ac.currentTime + 0.36);
+      } else if (type === 'shield') {
+        // metallic clang
+        [320, 640, 1280].forEach((freq, i) => {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'sine'; o.frequency.value = freq;
+          o.connect(g); g.connect(ac.destination);
+          const t = ac.currentTime + i * 0.02;
+          g.gain.setValueAtTime(0.2, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          o.start(t); o.stop(t + 0.31);
+        });
       }
     } catch(e) {}
   }
