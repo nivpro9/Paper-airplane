@@ -43,16 +43,16 @@ const LEVELS = generateLevels();
 
 // ── VEHICLES ─────────────────────────────────────────────
 const VEHICLES = [
-  { id:0, name:'Paper Plane',     emoji:'✉️',  cost:0,    speed:1.0,  control:1.0,  color:'#ffffff', landing:'strip'   },
-  { id:1, name:'Upgraded Paper',  emoji:'📄',  cost:80,   speed:1.15, control:1.1,  color:'#e3f2fd', landing:'strip'   },
-  { id:2, name:'Drone',           emoji:'🚁',  cost:200,  speed:0.95, control:1.7,  color:'#90caf9', landing:'helipad' },
-  { id:3, name:'Light Plane',     emoji:'🛩️', cost:450,  speed:1.3,  control:1.2,  color:'#4fc3f7', landing:'runway'  },
-  { id:4, name:'Propeller Plane', emoji:'✈️',  cost:900,  speed:1.5,  control:1.15, color:'#ffd54f', landing:'runway'  },
-  { id:5, name:'Rocket',          emoji:'🚀',  cost:1600, speed:2.0,  control:0.85, color:'#ff7043', landing:'pad'     },
-  { id:6, name:'Small Airliner',  emoji:'🛫',  cost:2800, speed:1.7,  control:1.0,  color:'#ce93d8', landing:'airport' },
-  { id:7, name:'Large Airliner',  emoji:'🛬',  cost:4500, speed:1.9,  control:0.9,  color:'#b39ddb', landing:'airport' },
-  { id:8, name:'Stealth Plane',   emoji:'🌑',  cost:7000, speed:2.3,  control:1.2,  color:'#546e7a', landing:'military'},
-  { id:9, name:'B-2 Spirit',      emoji:'🛸',  cost:11000,speed:2.6,  control:1.3,  color:'#37474f', landing:'military'},
+  { id:0, name:'Paper Plane',     emoji:'✉️',  cost:0,     speed:1.0,  control:1.0,  color:'#ffffff', landing:'strip'   },
+  { id:1, name:'Upgraded Paper',  emoji:'📄',  cost:135,   speed:1.15, control:1.1,  color:'#e3f2fd', landing:'strip'   },
+  { id:2, name:'Drone',           emoji:'🚁',  cost:360,   speed:0.95, control:1.7,  color:'#90caf9', landing:'helipad' },
+  { id:3, name:'Light Plane',     emoji:'🛩️', cost:810,   speed:1.3,  control:1.2,  color:'#4fc3f7', landing:'runway'  },
+  { id:4, name:'Propeller Plane', emoji:'✈️',  cost:1620,  speed:1.5,  control:1.15, color:'#ffd54f', landing:'runway'  },
+  { id:5, name:'Rocket',          emoji:'🚀',  cost:2880,  speed:2.0,  control:0.85, color:'#ff7043', landing:'pad'     },
+  { id:6, name:'Small Airliner',  emoji:'🛫',  cost:4500,  speed:1.7,  control:1.0,  color:'#ce93d8', landing:'airport' },
+  { id:7, name:'Large Airliner',  emoji:'🛬',  cost:7200,  speed:1.9,  control:0.9,  color:'#b39ddb', landing:'airport' },
+  { id:8, name:'Stealth Plane',   emoji:'🌑',  cost:10800, speed:2.3,  control:1.2,  color:'#546e7a', landing:'military'},
+  { id:9, name:'B-2 Spirit',      emoji:'🛸',  cost:16200, speed:2.6,  control:1.3,  color:'#37474f', landing:'military'},
 ];
 
 // ── UPGRADES ─────────────────────────────────────────────
@@ -306,23 +306,22 @@ function updateEnemies(dt) {
 }
 
 // ── COIN ─────────────────────────────────────────────────
+// Coin value increases each biome (world)
+const COIN_VALUES = [1, 2, 3, 5, 8, 12, 20]; // per biome 0-6
+function coinValue() { return COIN_VALUES[Math.min(6, currentBiome)]; }
+
 function spawnCoin() {
-  // Only spawn coins inside the gap of the nearest upcoming pillar
   const nextPillar = obstacles.find(o => o.type === 'pillar' && o.x > W * 0.5);
   let centerY = H * 0.5;
   let gapH = H * levelData.gapFraction;
-  if (nextPillar) {
-    centerY = nextPillar.gapY;
-    gapH = nextPillar.gap;
-  }
-  // Clamp to safe zone
+  if (nextPillar) { centerY = nextPillar.gapY; gapH = nextPillar.gap; }
   centerY = Math.max(H * 0.22, Math.min(H * 0.75, centerY));
-  // 1–2 coins in a horizontal line, spaced within the gap
   const n = Math.random() < 0.4 ? 2 : 1;
   const spread = Math.min(gapH * 0.25, 22);
+  const val = coinValue();
   for (let i = 0; i < n; i++) {
     const offsetY = (Math.random() - 0.5) * spread;
-    coins.push({ x: W + 50 + i * 30, y: centerY + offsetY, r: 12, collected: false, anim: Math.random() * Math.PI * 2 });
+    coins.push({ x: W + 50 + i * 30, y: centerY + offsetY, r: 12, val, collected: false, anim: Math.random() * Math.PI * 2 });
   }
 }
 
@@ -618,9 +617,12 @@ function update(dt) {
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d < magnetRange) { c.x += (dx / d) * 5; c.y += (dy / d) * 5; }
     if (d < c.r + 22) {
-      c.collected = true; sessionCoins++;
+      c.collected = true;
+      const v = c.val || 1;
+      sessionCoins += v;
       spawnParticles(c.x, c.y, '#FFD700', 5);
       Snd.play('coin');
+      popups.push({ text: '+' + v, x: c.x, y: c.y - 18, alpha: 1, timer: 0.9, color: '#FFD700' });
       return false;
     }
     return c.x > -20;
@@ -923,16 +925,35 @@ function drawObstacle(obs) {
 }
 
 // ── DRAW COIN ─────────────────────────────────────────────
+// Coin colors per biome
+const COIN_COLORS = [
+  ['#FFD700','#FFA000'], // Sky — gold
+  ['#FF8C00','#E65100'], // Sunset — orange
+  ['#B39DDB','#7E57C2'], // Night — purple
+  ['#78909C','#455A64'], // Storm — steel
+  ['#80DEEA','#00ACC1'], // Arctic — ice blue
+  ['#FF7043','#BF360C'], // Canyon — copper
+  ['#E040FB','#7B1FA2'], // Space — violet
+];
 function drawCoin(coin, t) {
   if (coin.collected) return;
+  const val = coin.val || 1;
+  const biome = Math.min(6, currentBiome);
+  const [c1, c2] = COIN_COLORS[biome];
   ctx.save(); ctx.translate(coin.x, coin.y);
   const s = 0.9 + 0.1 * Math.sin(t * 3 + coin.anim); ctx.scale(s, s);
-  const grd = ctx.createRadialGradient(0,0,0,0,0,coin.r*1.8);
-  grd.addColorStop(0,'rgba(255,220,0,0.4)'); grd.addColorStop(1,'rgba(255,220,0,0)');
-  ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(0,0,coin.r*1.8,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#FFD700'; ctx.beginPath(); ctx.arc(0,0,coin.r,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#FFA000'; ctx.beginPath(); ctx.arc(0,0,coin.r*0.75,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#FFD700'; ctx.font=`bold ${coin.r*0.9}px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('$',0,1);
+  // Glow
+  const grd = ctx.createRadialGradient(0,0,0,0,0,coin.r*2);
+  grd.addColorStop(0, c1 + '66'); grd.addColorStop(1, c1 + '00');
+  ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(0,0,coin.r*2,0,Math.PI*2); ctx.fill();
+  // Coin body
+  ctx.fillStyle=c1; ctx.beginPath(); ctx.arc(0,0,coin.r,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=c2; ctx.beginPath(); ctx.arc(0,0,coin.r*0.72,0,Math.PI*2); ctx.fill();
+  // Value text inside coin
+  ctx.fillStyle=c1;
+  const fs = val >= 10 ? coin.r*0.75 : coin.r*0.9;
+  ctx.font=`bold ${fs}px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(val >= 10 ? val : '$', 0, 1);
   ctx.restore();
 }
 
