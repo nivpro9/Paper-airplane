@@ -725,6 +725,7 @@ function updateHUD() {
   document.getElementById('hud-distance').textContent = distM + 'm';
   document.getElementById('hud-goal').textContent = '/ ' + levelData.goal + 'm';
   document.getElementById('hud-level').textContent = currentLevel;
+  document.getElementById('hud-coins').textContent = Save.data.coins;
 
   // Ammo display
   const cap = maxAmmo();

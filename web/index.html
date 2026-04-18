@@ -48,10 +48,13 @@
 
 <!-- MENU -->
 <div id="screen-menu" class="screen active">
-  <div class="menu-sky"></div>
+  <div class="menu-sky">
+    <div class="sky-cloud c1"></div>
+    <div class="sky-cloud c2"></div>
+    <div class="sky-cloud c3"></div>
+  </div>
   <div class="menu-content">
     <div class="logo">
-      <div class="logo-plane">✈</div>
       <h1>PAPER</h1>
       <h2>AIRPLANE</h2>
     </div>
@@ -60,13 +63,13 @@
       <div id="vehicle-name" class="vehicle-name">Paper Plane</div>
     </div>
     <div class="stats-row">
-      <div class="stat"><span class="stat-icon">🪙</span><span id="menu-coins">0</span></div>
+      <div class="stat"><span class="coin-dot"></span><span id="menu-coins">0</span></div>
       <div class="stat"><span id="menu-level">LVL 1</span></div>
       <div class="stat"><span id="menu-best">BEST 1</span></div>
     </div>
     <button id="playBtn" class="btn-play">PLAY</button>
-    <button id="levelsBtn" class="btn-shop">🗺️ LEVELS</button>
-    <button id="shopBtn" class="btn-shop">🔧 UPGRADES</button>
+    <button id="levelsBtn" class="btn-levels">🗺️ LEVELS</button>
+    <button id="shopBtn" class="btn-upgrades">⚙️ UPGRADES</button>
   </div>
 </div>
 
@@ -78,6 +81,7 @@
     <div class="hud-left">
       <span class="hud-label">LEVEL</span>
       <span id="hud-level">1</span>
+      <span class="hud-label" style="margin-top:3px">🟡 <span id="hud-coins" style="color:#FFD700;font-weight:bold;">0</span></span>
     </div>
     <div class="hud-center">
       <span class="hud-label">DISTANCE</span>
