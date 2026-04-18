@@ -507,7 +507,7 @@ function spawnParticles(x, y, color, n = 8) {
 function shoot() {
   if (gameState !== 'playing' || !player?.alive) return;
   const lvl = Save.data.upgrades.cannon || 0;
-  if (lvl === 0 || ammo <= 0 || shootCooldown > 0) return;
+  if (lvl === 0 || ammo <= 0 || shootCooldown > 0 || currentLevel < 5) return;
   ammo--;
   const cooldowns = [0, 0.9, 0.55, 0.4];
   shootCooldown = cooldowns[lvl];
@@ -523,16 +523,9 @@ function shoot() {
 }
 
 function updateShootBtn() {
+  // Shoot button is hidden — shooting is done via double-tap
   const btn = document.getElementById('shoot-btn');
-  if (!btn) return;
-  const lvl = Save.data.upgrades.cannon || 0;
-  if (lvl > 0 && gameState === 'playing' && !landing) {
-    btn.classList.remove('hidden');
-    btn.textContent = lvl >= 3 ? '🔥' : '🔫';
-    btn.style.opacity = ammo > 0 ? '1' : '0.4';
-  } else {
-    btn.classList.add('hidden');
-  }
+  if (btn) btn.classList.add('hidden');
 }
 
 
@@ -695,8 +688,8 @@ function update(dt) {
   coinTimer -= dt;
   if (coinTimer <= 0) { spawnCoin(); coinTimer = 2.0 + Math.random() * 2.0; }
 
-  // Ammo crate spawn (only if cannon unlocked)
-  if (upg.cannon > 0) {
+  // Ammo crate spawn (only if cannon unlocked AND level 5+)
+  if (upg.cannon > 0 && currentLevel >= 5) {
     ammoTimer -= dt;
     if (ammoTimer <= 0) {
       ammoPickups.push(createAmmoCrate());
@@ -1688,20 +1681,30 @@ function buyUpgrade(id) {
 function setupTouch() {
   const gc = document.getElementById('screen-game');
 
-  // Hold anywhere on screen = fly up
-  gc.addEventListener('touchstart', e => { e.preventDefault(); isHolding = true; }, { passive: false });
-  gc.addEventListener('touchend',   () => { isHolding = false; });
-  gc.addEventListener('touchcancel',() => { isHolding = false; });
+  // Hold anywhere on screen = fly up; double-tap = shoot (level 5+)
+  let lastTapTime = 0;
+  gc.addEventListener('touchstart', e => {
+    e.preventDefault();
+    isHolding = true;
+    const now = Date.now();
+    if (now - lastTapTime < 280) {
+      shoot();
+      lastTapTime = 0;
+    } else {
+      lastTapTime = now;
+    }
+  }, { passive: false });
+  gc.addEventListener('touchend',    () => { isHolding = false; });
+  gc.addEventListener('touchcancel', () => { isHolding = false; });
 
-  // Mouse (desktop)
+  // Mouse (desktop): hold = fly up, double-click = shoot
   gc.addEventListener('mousedown',  () => { isHolding = true; });
   gc.addEventListener('mouseup',    () => { isHolding = false; });
   gc.addEventListener('mouseleave', () => { isHolding = false; });
+  gc.addEventListener('dblclick',   () => { shoot(); });
 
-  // Shoot button — separate, doesn't affect isHolding
-  const shootBtn = document.getElementById('shoot-btn');
-  shootBtn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); shoot(); }, { passive: false });
-  shootBtn.addEventListener('mousedown',  e => { e.stopPropagation(); shoot(); });
+  // Shoot button hidden (double-tap used instead)
+  document.getElementById('shoot-btn').classList.add('hidden');
 }
 
 // ── AUDIO ─────────────────────────────────────────────────
