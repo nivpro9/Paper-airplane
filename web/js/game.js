@@ -471,6 +471,15 @@ function update(dt) {
   });
 
   document.getElementById('hud-score').textContent = score;
+  const distM = Math.floor(distance);
+  document.getElementById('hud-distance').textContent = distM + 'm';
+  // Show personal best badge in real time
+  const pb = document.getElementById('hud-pb-badge');
+  if (distM > Save.data.bestScore && Save.data.bestScore > 0) {
+    pb.classList.remove('hidden');
+  } else {
+    pb.classList.add('hidden');
+  }
 }
 
 function handleHit() {
@@ -573,12 +582,13 @@ function showGameOver() {
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
   // Save coins
   Save.data.coins += sessionCoins;
-  const isNew = score > Save.data.bestScore;
-  if (isNew) Save.data.bestScore = score;
+  const finalDist = Math.floor(distance);
+  const isNew = finalDist > Save.data.bestScore;
+  if (isNew) Save.data.bestScore = finalDist;
   Save.save();
   // Update UI
-  document.getElementById('go-score').textContent = score;
-  document.getElementById('go-best').textContent = Save.data.bestScore;
+  document.getElementById('go-score').textContent = Math.floor(distance) + 'm';
+  document.getElementById('go-best').textContent = Save.data.bestScore + 'm';
   document.getElementById('go-coins').textContent = `+${sessionCoins}`;
   document.getElementById('go-newbest').classList.toggle('hidden', !isNew);
   showScreen('screen-gameover');
