@@ -17,11 +17,16 @@ const Save = {
 
 // ── VEHICLES ──
 const VEHICLES = [
-  { id: 0, name: 'Paper Plane', icon: '✈', emoji: '✉️', cost: 0,    speed: 1.0, control: 1.0, color: '#fff', special: 'Floaty' },
-  { id: 1, name: 'Small Plane', icon: '🛩', emoji: '🛩️', cost: 300,  speed: 1.3, control: 1.2, color: '#4fc3f7', special: 'Stable' },
-  { id: 2, name: 'Helicopter', icon: '🚁', emoji: '🚁', cost: 800,  speed: 0.9, control: 1.6, color: '#81c784', special: 'Precise' },
-  { id: 3, name: 'Airliner',   icon: '✈', emoji: '✈️', cost: 2000, speed: 1.7, control: 0.9, color: '#ce93d8', special: 'Fast' },
-  { id: 4, name: 'Fighter Jet',icon: '🛸', emoji: '🛫', cost: 5000, speed: 2.2, control: 1.1, color: '#ff8a65', special: 'Ultra Fast' },
+  { id: 0, name: 'Paper Plane',      emoji: '✉️',  cost: 0,      speed: 1.0, control: 1.0, color: '#ffffff', special: 'Floaty'       },
+  { id: 1, name: 'Upgraded Paper',   emoji: '📄',  cost: 150,    speed: 1.15,control: 1.1, color: '#e3f2fd', special: 'Sharper'      },
+  { id: 2, name: 'Drone',            emoji: '🚁',  cost: 400,    speed: 0.95,control: 1.7, color: '#90caf9', special: 'Precise'      },
+  { id: 3, name: 'Light Plane',      emoji: '🛩️', cost: 900,    speed: 1.3, control: 1.2, color: '#4fc3f7', special: 'Balanced'     },
+  { id: 4, name: 'Propeller Plane',  emoji: '✈️',  cost: 1800,   speed: 1.5, control: 1.15,color: '#ffd54f', special: 'Strong'       },
+  { id: 5, name: 'Rocket',           emoji: '🚀',  cost: 3200,   speed: 2.0, control: 0.85,color: '#ff7043', special: 'Blazing'      },
+  { id: 6, name: 'Small Airliner',   emoji: '🛫',  cost: 5000,   speed: 1.7, control: 1.0, color: '#ce93d8', special: 'Steady'       },
+  { id: 7, name: 'Large Airliner',   emoji: '🛬',  cost: 8000,   speed: 1.9, control: 0.9, color: '#b39ddb', special: 'Powerful'     },
+  { id: 8, name: 'Stealth Plane',    emoji: '🌑',  cost: 12000,  speed: 2.3, control: 1.2, color: '#546e7a', special: 'Invisible'    },
+  { id: 9, name: 'B-2 Spirit',       emoji: '🛸',  cost: 18000,  speed: 2.6, control: 1.3, color: '#37474f', special: 'Legendary'   },
 ];
 
 // ── UPGRADES ──
@@ -121,63 +126,116 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
   ctx.translate(x, y);
   ctx.rotate(tilt);
   ctx.scale(scale, scale);
-
   const id = v.id;
-  if (id === 0) { // paper plane
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(28, 0); ctx.lineTo(-20, -14); ctx.lineTo(-10, 0); ctx.lineTo(-20, 14);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#e0e0e0';
-    ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-20, -14); ctx.lineTo(-10, -6); ctx.closePath(); ctx.fill();
-  } else if (id === 1) { // small plane
-    ctx.fillStyle = '#4fc3f7';
-    ctx.beginPath(); ctx.ellipse(0, 0, 26, 10, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#0288d1';
-    ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(-16, -14); ctx.lineTo(-20, 0); ctx.lineTo(-16, 14); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.beginPath(); ctx.ellipse(8, 0, 9, 7, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(-4, -10, 14, 5, 0.3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(-4, 10, 14, 5, -0.3, 0, Math.PI * 2); ctx.fill();
-  } else if (id === 2) { // helicopter
-    ctx.fillStyle = '#81c784';
-    ctx.beginPath(); ctx.ellipse(0, 2, 22, 12, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#388e3c';
-    ctx.fillRect(18, -2, 20, 6);
-    ctx.fillStyle = '#fff';
-    const rot = Date.now() * 0.015;
-    for (let i = 0; i < 3; i++) {
-      const a = rot + i * Math.PI * 2 / 3;
-      ctx.save(); ctx.rotate(a);
-      ctx.fillRect(-22, -3, 44, 6);
+  const rot = Date.now() * 0.015;
+
+  if (id === 0) { // Paper Plane
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(28,0); ctx.lineTo(-20,-14); ctx.lineTo(-10,0); ctx.lineTo(-20,14); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e0e0e0'; ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(-20,-14); ctx.lineTo(-10,-6); ctx.closePath(); ctx.fill();
+
+  } else if (id === 1) { // Upgraded Paper Plane (sharper, gold fold)
+    ctx.fillStyle = '#f5f5f5'; ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(32,0); ctx.lineTo(-22,-13); ctx.lineTo(-8,0); ctx.lineTo(-22,13); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffd54f';
+    ctx.beginPath(); ctx.moveTo(32,0); ctx.lineTo(10,-5); ctx.lineTo(10,5); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#ffd54f'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(-8,0); ctx.lineTo(32,0); ctx.stroke();
+
+  } else if (id === 2) { // Drone
+    ctx.fillStyle = '#546e7a'; ctx.beginPath(); ctx.ellipse(0,0,14,7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#90a4ae';
+    const arms = [[-14,-14],[14,-14],[14,14],[-14,14]];
+    arms.forEach(([ax,ay])=>{
+      ctx.save(); ctx.translate(ax,ay);
+      ctx.fillStyle='#607d8b'; ctx.fillRect(-4,-4,8,8);
+      for(let i=0;i<2;i++){
+        ctx.save(); ctx.rotate(rot+i*Math.PI);
+        ctx.fillStyle='rgba(200,220,255,0.7)'; ctx.fillRect(-10,-2,20,4);
+        ctx.restore();
+      }
       ctx.restore();
-    }
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.ellipse(4, 2, 8, 7, 0, 0, Math.PI * 2); ctx.fill();
-  } else if (id === 3) { // airliner
-    ctx.fillStyle = '#ce93d8';
-    ctx.beginPath(); ctx.ellipse(0, 0, 30, 11, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#7b1fa2';
-    ctx.beginPath(); ctx.moveTo(30, 0); ctx.lineTo(-18, -13); ctx.lineTo(-24, 0); ctx.lineTo(-18, 13); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#fff';
-    for (let i = -1; i <= 1; i += 2) {
-      ctx.beginPath(); ctx.ellipse(-2, i * 10, 18, 4, i * 0.2, 0, Math.PI * 2); ctx.fill();
-    }
-    for (let i = -12; i <= 12; i += 8) {
-      ctx.fillStyle = 'rgba(100,200,255,0.7)';
-      ctx.beginPath(); ctx.ellipse(i, 0, 4, 7, 0, 0, Math.PI * 2); ctx.fill();
-    }
-  } else { // fighter jet
-    ctx.fillStyle = '#ff8a65';
-    ctx.beginPath(); ctx.moveTo(36, 0); ctx.lineTo(-10, -8); ctx.lineTo(-28, -4); ctx.lineTo(-20, 0); ctx.lineTo(-28, 4); ctx.lineTo(-10, 8); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#e64a19';
-    ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(-28, -18); ctx.lineTo(-36, -4); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(-28, 18); ctx.lineTo(-36, 4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(100,220,255,0.7)'; ctx.beginPath(); ctx.ellipse(12, 0, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
-    // Engine flame
-    ctx.fillStyle = `rgba(255,${100 + Math.random() * 80},0,0.8)`;
-    ctx.beginPath(); ctx.ellipse(-34, 0, 6 + Math.random() * 4, 4, 0, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.fillStyle='rgba(100,200,255,0.8)'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
+
+  } else if (id === 3) { // Light Plane
+    ctx.fillStyle = '#4fc3f7';
+    ctx.beginPath(); ctx.ellipse(0,0,26,9,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#0288d1'; ctx.beginPath(); ctx.moveTo(26,0); ctx.lineTo(-16,-13); ctx.lineTo(-20,0); ctx.lineTo(-16,13); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.ellipse(7,0,8,6,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(-3,-9,13,4,0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-3,9,13,4,-0.3,0,Math.PI*2); ctx.fill();
+
+  } else if (id === 4) { // Propeller Plane
+    ctx.fillStyle = '#ffd54f';
+    ctx.beginPath(); ctx.ellipse(0,0,28,10,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f9a825'; ctx.beginPath(); ctx.moveTo(28,0); ctx.lineTo(-16,-12); ctx.lineTo(-20,0); ctx.lineTo(-16,12); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(-4,-10,15,5,0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-4,10,15,5,-0.3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.ellipse(8,0,9,7,0,0,Math.PI*2); ctx.fill();
+    // Propeller
+    ctx.save(); ctx.translate(30,0); ctx.rotate(rot*2);
+    ctx.fillStyle='#5d4037'; ctx.fillRect(-2,-16,4,32); ctx.fillRect(-16,-2,32,4);
+    ctx.restore();
+
+  } else if (id === 5) { // Rocket
+    ctx.fillStyle = '#ff7043';
+    ctx.beginPath(); ctx.moveTo(34,0); ctx.lineTo(-16,-8); ctx.lineTo(-22,-5); ctx.lineTo(-22,5); ctx.lineTo(-16,8); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#bf360c'; ctx.beginPath(); ctx.moveTo(-22,-5); ctx.lineTo(-34,-14); ctx.lineTo(-22,0); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-22,5); ctx.lineTo(-34,14); ctx.lineTo(-22,0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(100,220,255,0.7)'; ctx.beginPath(); ctx.ellipse(14,0,9,6,0,0,Math.PI*2); ctx.fill();
+    // Flame
+    const fl = 6 + Math.random()*8;
+    const grd = ctx.createRadialGradient(-22,0,0,-22,0,fl+8);
+    grd.addColorStop(0,'rgba(255,255,200,0.9)'); grd.addColorStop(0.4,'rgba(255,120,0,0.7)'); grd.addColorStop(1,'rgba(255,0,0,0)');
+    ctx.fillStyle=grd; ctx.beginPath(); ctx.ellipse(-22-fl/2,0,fl,5,0,0,Math.PI*2); ctx.fill();
+
+  } else if (id === 6) { // Small Airliner
+    ctx.fillStyle='#ce93d8';
+    ctx.beginPath(); ctx.ellipse(0,0,30,11,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#7b1fa2'; ctx.beginPath(); ctx.moveTo(30,0); ctx.lineTo(-18,-13); ctx.lineTo(-24,0); ctx.lineTo(-18,13); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(-2,-10,18,4,0.2,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-2,10,18,4,-0.2,0,Math.PI*2); ctx.fill();
+    for(let i=-10;i<=10;i+=7){ ctx.fillStyle='rgba(100,200,255,0.7)'; ctx.beginPath(); ctx.arc(i,0,3,0,Math.PI*2); ctx.fill(); }
+
+  } else if (id === 7) { // Large Airliner
+    ctx.fillStyle='#b39ddb';
+    ctx.beginPath(); ctx.ellipse(0,0,38,13,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#4527a0'; ctx.beginPath(); ctx.moveTo(38,0); ctx.lineTo(-22,-14); ctx.lineTo(-28,0); ctx.lineTo(-22,14); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(-4,-13,22,5,0.25,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-4,13,22,5,-0.25,0,Math.PI*2); ctx.fill();
+    // 2 engines per wing
+    [-18,2].forEach(ex=>[-13,13].forEach(ey=>{
+      ctx.fillStyle='#7e57c2'; ctx.beginPath(); ctx.ellipse(ex,ey,7,4,0,0,Math.PI*2); ctx.fill();
+    }));
+    for(let i=-16;i<=16;i+=8){ ctx.fillStyle='rgba(150,220,255,0.6)'; ctx.beginPath(); ctx.arc(i,0,3,0,Math.PI*2); ctx.fill(); }
+
+  } else if (id === 8) { // Stealth Plane
+    ctx.fillStyle='#546e7a';
+    ctx.beginPath(); ctx.moveTo(36,0); ctx.lineTo(-10,-6); ctx.lineTo(-32,-22); ctx.lineTo(-24,0); ctx.lineTo(-32,22); ctx.lineTo(-10,6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#37474f'; ctx.beginPath(); ctx.moveTo(-24,0); ctx.lineTo(-32,-22); ctx.lineTo(-28,-10); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-24,0); ctx.lineTo(-32,22); ctx.lineTo(-28,10); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(0,200,255,0.3)'; ctx.beginPath(); ctx.ellipse(10,0,10,5,0,0,Math.PI*2); ctx.fill();
+    // Stealth glow
+    ctx.strokeStyle='rgba(0,255,200,0.3)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(36,0); ctx.lineTo(-10,-6); ctx.lineTo(-32,-22); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(36,0); ctx.lineTo(-10,6); ctx.lineTo(-32,22); ctx.stroke();
+
+  } else if (id === 9) { // B-2 Spirit
+    ctx.fillStyle='#263238';
+    ctx.beginPath(); ctx.moveTo(38,0); ctx.lineTo(10,-6); ctx.lineTo(-16,-38); ctx.lineTo(-28,-12); ctx.lineTo(-32,0); ctx.lineTo(-28,12); ctx.lineTo(-16,38); ctx.lineTo(10,6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#37474f'; ctx.beginPath(); ctx.moveTo(38,0); ctx.lineTo(10,-6); ctx.lineTo(20,0); ctx.lineTo(10,6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(0,255,180,0.2)';
+    ctx.beginPath(); ctx.moveTo(10,-6); ctx.lineTo(-16,-38); ctx.lineTo(-10,-20); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(10,6); ctx.lineTo(-16,38); ctx.lineTo(-10,20); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(0,220,255,0.45)'; ctx.beginPath(); ctx.ellipse(14,0,11,5,0,0,Math.PI*2); ctx.fill();
+    // 4 engine slots
+    [-6,6].forEach(ey=>[-12,0].forEach(ex=>{
+      ctx.fillStyle='rgba(0,255,150,0.5)'; ctx.beginPath(); ctx.ellipse(ex,ey,5,3,0,0,Math.PI*2); ctx.fill();
+    }));
+    ctx.strokeStyle='rgba(0,255,180,0.4)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(38,0); ctx.lineTo(-32,0); ctx.stroke();
   }
+
   ctx.restore();
 }
 
