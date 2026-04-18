@@ -855,12 +855,7 @@ function draw(t) {
     ctx.strokeStyle = `rgba(0,0,0,${h.alpha * 0.6})`;
     ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.lineWidth = 4; ctx.strokeText(h.text, h.x, h.y); ctx.fillText(h.text, h.x, h.y);
-    // Arrow toward joystick if hint is about controls
-    if (h.text.includes('joystick')) {
-      ctx.strokeStyle = `rgba(255,220,0,${h.alpha})`;
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(h.x, h.y + 20); ctx.lineTo(JOY.baseX, JOY.baseY - JOY.baseR - 10); ctx.stroke();
-    }
+    // No joystick arrow needed (hold-to-fly controls)
     ctx.restore();
   });
 
@@ -1180,7 +1175,7 @@ window.addEventListener('load', () => {
       canvas.width = canvas.offsetWidth;
       canvas.height = canvas.offsetHeight;
       W = canvas.width; H = canvas.height;
-      JOY.baseX = W * 0.5; JOY.baseY = H - 90;
+      // no joystick to reposition
     }
   });
 
