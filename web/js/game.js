@@ -643,22 +643,22 @@ function update(dt) {
   // ── PHYSICS: hold screen = fly up, release = fall ──
   const ctrl      = veh.control * (1 + upg.control * 0.15);
   const gravity   = veh.id === 2 ? 260 : 520; // Drone perk: gravity halved
-  const uplift    = 740;
-  const maxFall   = 340;
-  const maxRise   = -270 * Math.min(ctrl, 1.9);
+  const uplift    = 700;
+  const maxFall   = 320;
+  const maxRise   = -260 * Math.min(ctrl, 1.8);
 
   if (isHolding) {
     player.vy = Math.max(player.vy - uplift * ctrl * dt, maxRise);
   } else {
-    // Momentum: at apex of sharp rise, apply reduced gravity for floaty feel
-    const effectiveGravity = player.vy < -80 ? gravity * 0.4 : gravity;
-    player.vy = Math.min(player.vy + effectiveGravity * dt, maxFall);
+    // Smooth momentum: slightly softer gravity while still rising (no sharp threshold)
+    const gravityFactor = player.vy < 0 ? 0.72 : 1.0;
+    player.vy = Math.min(player.vy + gravity * gravityFactor * dt, maxFall);
   }
   player.y += player.vy * dt;
 
   // Clamp to screen
   player.y = Math.max(player.h * 0.5, Math.min(H - player.h * 0.5, player.y));
-  if (player.y <= player.h * 0.5 || player.y >= H - player.h * 0.5) player.vy = 0;
+  if (player.y <= player.h * 0.5 || player.y >= H - player.h * 0.5) player.vy *= 0.2; // dampen instead of zero
 
   // Trail
   player.trail.unshift({ x: player.x, y: player.y });
@@ -873,6 +873,9 @@ function update(dt) {
     }
     return mb.x > -50;
   });
+
+  // Global vy clamp — prevents fan/enemy wind from pushing beyond safe speeds
+  player.vy = Math.max(-380, Math.min(380, player.vy));
 
   // ── POPUPS ──
   popups = popups.filter(p => {
