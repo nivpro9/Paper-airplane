@@ -43,16 +43,16 @@ const LEVELS = generateLevels();
 
 // ── VEHICLES ─────────────────────────────────────────────
 const VEHICLES = [
-  { id:0, name:'Paper Plane',     emoji:'✉️',  cost:0,     speed:1.0,  control:1.0,  color:'#ffffff', landing:'strip'   },
-  { id:1, name:'Upgraded Paper',  emoji:'📄',  cost:135,   speed:1.15, control:1.1,  color:'#e3f2fd', landing:'strip'   },
-  { id:2, name:'Drone',           emoji:'🚁',  cost:360,   speed:0.95, control:1.7,  color:'#90caf9', landing:'helipad' },
-  { id:3, name:'Light Plane',     emoji:'🛩️', cost:810,   speed:1.3,  control:1.2,  color:'#4fc3f7', landing:'runway'  },
-  { id:4, name:'Propeller Plane', emoji:'✈️',  cost:1620,  speed:1.5,  control:1.15, color:'#ffd54f', landing:'runway'  },
-  { id:5, name:'Rocket',          emoji:'🚀',  cost:2880,  speed:2.0,  control:0.85, color:'#ff7043', landing:'pad'     },
-  { id:6, name:'Small Airliner',  emoji:'🛫',  cost:4500,  speed:1.7,  control:1.0,  color:'#ce93d8', landing:'airport' },
-  { id:7, name:'Large Airliner',  emoji:'🛬',  cost:7200,  speed:1.9,  control:0.9,  color:'#b39ddb', landing:'airport' },
-  { id:8, name:'Stealth Plane',   emoji:'🌑',  cost:10800, speed:2.3,  control:1.2,  color:'#546e7a', landing:'military'},
-  { id:9, name:'B-2 Spirit',      emoji:'🛸',  cost:16200, speed:2.6,  control:1.3,  color:'#37474f', landing:'military'},
+  { id:0, name:'Paper Plane',     emoji:'✉️',  cost:0,     speed:1.0,  control:1.0,  color:'#ffffff', landing:'strip',    perk:'Standard all-rounder'                          },
+  { id:1, name:'Upgraded Paper',  emoji:'📄',  cost:135,   speed:1.15, control:1.1,  color:'#e3f2fd', landing:'strip',    perk:'🧲 Coin magnet range +40%'                     },
+  { id:2, name:'Drone',           emoji:'🚁',  cost:360,   speed:0.95, control:1.7,  color:'#90caf9', landing:'helipad',  perk:'🎯 Ultra-precise hover — gravity halved'        },
+  { id:3, name:'Light Plane',     emoji:'🛩️', cost:810,   speed:1.3,  control:1.2,  color:'#4fc3f7', landing:'runway',   perk:'⚡ Aerobatic — tighter turns'                   },
+  { id:4, name:'Propeller Plane', emoji:'✈️',  cost:1620,  speed:1.5,  control:1.15, color:'#ffd54f', landing:'runway',   perk:'💨 Fan gusts reduced by 60%'                   },
+  { id:5, name:'Rocket',          emoji:'🚀',  cost:2880,  speed:2.0,  control:0.85, color:'#ff7043', landing:'pad',      perk:'🔥 Fire trail — hold for speed burst'           },
+  { id:6, name:'Small Airliner',  emoji:'🛫',  cost:4500,  speed:1.7,  control:1.0,  color:'#ce93d8', landing:'airport',  perk:'🪙 Every coin worth +2 bonus'                  },
+  { id:7, name:'Large Airliner',  emoji:'🛬',  cost:7200,  speed:1.9,  control:0.9,  color:'#b39ddb', landing:'airport',  perk:'🛡 Starts each level with +1 free shield'      },
+  { id:8, name:'Stealth Plane',   emoji:'🌑',  cost:10800, speed:2.3,  control:1.2,  color:'#546e7a', landing:'military', perk:'👻 Enemy missiles 50% miss chance'             },
+  { id:9, name:'B-2 Spirit',      emoji:'🛸',  cost:16200, speed:2.6,  control:1.3,  color:'#37474f', landing:'military', perk:'🔫 Auto-fires cannon every 4s (no ammo needed)'},
 ];
 
 // ── UPGRADES ─────────────────────────────────────────────
@@ -473,6 +473,7 @@ function updateEnemies(dt) {
     if (player.invincible <= 0) {
       const dx = player.x - b.x, dy = player.y - b.y;
       if (Math.sqrt(dx*dx+dy*dy) < b.r + 18) {
+        if (VEHICLES[Save.data.activeVehicle].id === 8 && Math.random() < 0.5) return false; // Stealth perk
         handleHit();
         return false;
       }
@@ -580,7 +581,7 @@ function initGame(levelNum) {
   isHolding = false;
 
   const upg = Save.data.upgrades;
-  shieldHits = upg.shield;
+  shieldHits = upg.shield + (Save.data.activeVehicle === 7 ? 1 : 0); // Large Airliner perk
   speed = levelData.speed * VEHICLES[Save.data.activeVehicle].speed * (1 + upg.speed * 0.12);
 
   const cap = maxAmmo();
@@ -635,7 +636,7 @@ function update(dt) {
 
   // ── PHYSICS: hold screen = fly up, release = fall ──
   const ctrl      = veh.control * (1 + upg.control * 0.15);
-  const gravity   = 520;
+  const gravity   = veh.id === 2 ? 260 : 520; // Drone perk: gravity halved
   const uplift    = 740;
   const maxFall   = 340;
   const maxRise   = -270 * Math.min(ctrl, 1.9);
@@ -643,7 +644,9 @@ function update(dt) {
   if (isHolding) {
     player.vy = Math.max(player.vy - uplift * ctrl * dt, maxRise);
   } else {
-    player.vy = Math.min(player.vy + gravity * dt, maxFall);
+    // Momentum: at apex of sharp rise, apply reduced gravity for floaty feel
+    const effectiveGravity = player.vy < -80 ? gravity * 0.4 : gravity;
+    player.vy = Math.min(player.vy + effectiveGravity * dt, maxFall);
   }
   player.y += player.vy * dt;
 
@@ -664,6 +667,16 @@ function update(dt) {
   if (upg.cannon >= 3 && ammo > 0) {
     shootAutoTimer -= dt;
     if (shootAutoTimer <= 0) { shoot(); shootAutoTimer = 2.5; }
+  } else if (veh.id === 9) {
+    // B-2 Spirit perk: auto-fires every 4s without consuming ammo
+    shootAutoTimer -= dt;
+    if (shootAutoTimer <= 0) {
+      const bulletVx = speed + 350;
+      bullets.push({ x: player.x + 26, y: player.y - 5, vx: bulletVx, vy: -40, r: 6 });
+      bullets.push({ x: player.x + 26, y: player.y + 5, vx: bulletVx, vy:  40, r: 6 });
+      spawnParticles(player.x + 20, player.y, '#ff9800', 10);
+      shootAutoTimer = 4;
+    }
   }
 
   // ── BULLETS ──
@@ -717,7 +730,7 @@ function update(dt) {
     mysteryTimer = 15 + Math.random() * 10;
   }
 
-  const magnetRange = 80 + upg.magnet * 50;
+  const magnetRange = (80 + upg.magnet * 50) * (veh.id === 1 ? 1.4 : 1.0); // Upgraded Paper perk
 
   // ── UPDATE OBSTACLES ──
   obstacles = obstacles.filter(obs => {
@@ -742,7 +755,7 @@ function update(dt) {
       obs.x -= speed;
       if (obs.x > 0 && obs.x < W) {
         const dx = player.x - obs.x, dy = player.y - obs.y;
-        if (Math.sqrt(dx * dx + dy * dy) < 110) player.vy += obs.windForce * 100 * dt;
+        if (Math.sqrt(dx * dx + dy * dy) < 110) player.vy += obs.windForce * 100 * (veh.id === 4 ? 0.4 : 1.0) * dt; // Propeller perk
       }
       if (player.invincible <= 0) {
         const dx = player.x - obs.x, dy = player.y - obs.y;
@@ -798,7 +811,8 @@ function update(dt) {
       coinCombo++;
       comboTimer = 3.0;
       const bonus = Math.floor(coinCombo / 3);
-      const earned = v + bonus;
+      const vehicleBonus = veh.id === 6 ? 2 : 0; // Small Airliner perk
+      const earned = v + bonus + vehicleBonus;
       sessionCoins += earned;
       spawnParticles(c.x, c.y, '#FFD700', 5);
       Snd.play('coin');
@@ -816,11 +830,11 @@ function update(dt) {
   // ── MYSTERY BOXES ──
   mysteryBoxes = mysteryBoxes.filter(mb => {
     if (mb.collected) return false;
-    mb.x -= speed * 0.7;
+    mb.x -= speed * 0.5;
     mb.anim += dt * 3;
     mb.bob = Math.sin(mb.anim) * 6; // floating bob
     const dx = player.x - mb.x, dy = player.y - mb.y;
-    if (Math.sqrt(dx*dx + dy*dy) < 28) {
+    if (Math.sqrt(dx*dx + dy*dy) < 38) {
       mb.collected = true;
       applyPrize(pickPrize());
       return false;
@@ -1658,7 +1672,6 @@ function renderLevelSelect() {
     const bubbles = worldLevels.map(lv => {
       const done    = lv.id < current;
       const active  = lv.id === current;
-      const locked  = lv.id > current;
 
       const pb = Save.data.levelBests && Save.data.levelBests[lv.id];
       const pbStr = pb ? ` title="Level ${lv.id} — Best: ${pb}m"` : ` title="Level ${lv.id}"`;
@@ -1667,7 +1680,8 @@ function renderLevelSelect() {
       } else if (active) {
         return `<div class="lv-bubble current"${pbStr} onclick="startLevelFromSelect(${lv.id})">${lv.id}</div>`;
       } else {
-        return `<div class="lv-bubble locked" title="Level ${lv.id} — Locked">🔒</div>`;
+        // All future levels unlocked for inspection
+        return `<div class="lv-bubble" style="opacity:0.7" title="Level ${lv.id}" onclick="startLevelFromSelect(${lv.id})">${lv.id}</div>`;
       }
     }).join('');
 
@@ -1719,7 +1733,7 @@ function renderShop() {
     const bottom = active ? '<div class="vc-badge" style="color:#FF6B35">ACTIVE</div>'
       : owned ? '<div class="vc-badge" style="color:#4CAF50">OWNED</div>'
       : `<div class="vc-cost">🪙 ${v.cost}</div>`;
-    return `<div class="vehicle-card ${cls}" onclick="selectVehicle(${v.id})"><div class="vc-icon">${v.emoji}</div><div class="vc-name">${v.name}</div>${bottom}</div>`;
+    return `<div class="vehicle-card ${cls}" onclick="selectVehicle(${v.id})"><div class="vc-icon">${v.emoji}</div><div class="vc-name">${v.name}</div><div class="vc-perk">${v.perk}</div>${bottom}</div>`;
   }).join('');
 
   document.getElementById('upgrades-list').innerHTML = UPGRADES.map(upg => {
@@ -1727,11 +1741,13 @@ function renderShop() {
     const maxed = level >= upg.maxLevel;
     const cost = maxed ? 0 : upg.costs[level];
     const pct = (level / upg.maxLevel) * 100;
+    const descExtra = upg.id === 'speed' && level > 0 ? ` — +${level*12}% speed now` :
+                      upg.id === 'control' && level > 0 ? ` — +${level*15}% control now` : '';
     return `<div class="upgrade-row" onclick="buyUpgrade('${upg.id}')">
       <div class="up-icon">${upg.icon}</div>
       <div class="up-info">
         <div class="up-name">${upg.name} <span style="color:rgba(255,255,255,0.4);font-size:12px">Lv ${level}/${upg.maxLevel}</span></div>
-        <div class="up-desc">${upg.desc}</div>
+        <div class="up-desc">${upg.desc}${descExtra}</div>
         <div class="up-bar"><div class="up-bar-fill" style="width:${pct}%"></div></div>
       </div>
       ${maxed ? '<div class="up-maxed">MAX</div>' : `<div class="up-cost">🪙 ${cost}</div>`}
@@ -1746,7 +1762,7 @@ function selectVehicle(id) {
     const v = VEHICLES[id];
     if (Save.data.coins >= v.cost) {
       Save.data.coins -= v.cost; Save.data.ownedVehicles.push(id); Save.data.activeVehicle = id;
-      Save.save(); renderShop();
+      Save.save(); renderShop(); Snd.play('buy');
     }
   }
 }
@@ -1757,7 +1773,7 @@ function buyUpgrade(id) {
   const cost = upg.costs[level];
   if (Save.data.coins >= cost) {
     Save.data.coins -= cost; Save.data.upgrades[id]++;
-    Save.save(); renderShop();
+    Save.save(); renderShop(); Snd.play('buy');
   }
 }
 
@@ -1920,6 +1936,17 @@ const Snd = (() => {
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
           o.start(t); o.stop(t + 0.36);
         });
+      } else if (type === 'buy') {
+        // Happy ascending chime for purchase
+        [523, 784, 1047].forEach((freq, i) => {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'sine'; o.frequency.value = freq;
+          o.connect(g); g.connect(ac.destination);
+          const t = ac.currentTime + i * 0.09;
+          g.gain.setValueAtTime(0.25, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          o.start(t); o.stop(t + 0.23);
+        });
       }
     } catch(e) {}
   }
@@ -1951,8 +1978,11 @@ const Snd = (() => {
       musicGain.connect(ac.destination);
       musicPlaying = true;
       let t = ac.currentTime + 0.1;
+      const loopLen = MELODY.reduce((s,[,d])=>s+d, 0);
       function scheduleLoop() {
         if (!musicPlaying) return;
+        // Guard: if tab was throttled/hidden, t may have fallen behind current time
+        if (t < ac.currentTime) t = ac.currentTime + 0.05;
         MELODY.forEach(([freq, dur]) => {
           if (freq > 0) {
             const o = ac.createOscillator(), g = ac.createGain();
@@ -1964,9 +1994,8 @@ const Snd = (() => {
           }
           t += dur;
         });
-        // schedule next loop slightly before end
-        const loopLen = MELODY.reduce((s,[,d])=>s+d, 0);
-        setTimeout(scheduleLoop, (loopLen - 0.5) * 1000);
+        // Schedule next call based on audio clock (not wall clock) to prevent drift
+        setTimeout(scheduleLoop, Math.max(100, (t - 0.5 - ac.currentTime) * 1000));
       }
       scheduleLoop();
     } catch(e) {}
@@ -2011,8 +2040,9 @@ window.addEventListener('load', () => {
     }
   });
 
-  // Save on tab close / background
+  // Save on tab close / background (pagehide is most reliable on mobile/iOS)
   window.addEventListener('beforeunload', () => Save.save());
+  window.addEventListener('pagehide', () => Save.save());
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') Save.save();
   });

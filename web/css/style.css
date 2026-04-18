@@ -281,6 +281,7 @@ body {
 .vc-name { color: white; font-size: 11px; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; }
 .vc-cost { color: var(--coin); font-size: 12px; }
 .vc-badge { font-size: 10px; margin-top: 4px; }
+.vc-perk { color: rgba(255,255,255,0.55); font-size: 9px; line-height: 1.3; margin-bottom: 4px; padding: 3px 4px; background: rgba(255,255,255,0.06); border-radius: 4px; }
 
 .upgrades-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 28px; }
 .upgrade-row {
@@ -293,8 +294,8 @@ body {
 .up-info { flex: 1; }
 .up-name { color: white; font-size: 15px; font-weight: bold; margin-bottom: 2px; }
 .up-desc { color: rgba(255,255,255,0.5); font-size: 12px; }
-.up-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 6px; overflow: hidden; }
-.up-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg,#FF6B35,#FFD700); transition: width .3s; }
+.up-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 50px; margin-top: 6px; overflow: hidden; }
+.up-bar-fill { height: 100%; border-radius: 50px; background: linear-gradient(90deg,#FF6B35,#FFD700); transition: width .3s; }
 .up-cost { color: var(--coin); font-size: 14px; font-weight: bold; white-space: nowrap; }
 .up-maxed { color: #4CAF50; font-size: 12px; font-weight: bold; }
 
