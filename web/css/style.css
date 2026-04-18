@@ -187,3 +187,32 @@ body {
 .up-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #FF6B35, #FFD700); transition: width .3s; }
 .up-cost { color: var(--coin); font-size: 14px; font-weight: bold; white-space: nowrap; }
 .up-maxed { color: #4CAF50; font-size: 12px; font-weight: bold; }
+
+/* ── SHOOT BUTTON ── */
+.shoot-btn {
+  position: absolute;
+  bottom: 28px;
+  right: 24px;
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 107, 53, 0.85);
+  background: rgba(0, 0, 0, 0.45);
+  color: white;
+  font-size: 34px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 22px rgba(255, 107, 53, 0.45), inset 0 0 12px rgba(255,107,53,0.15);
+  transition: transform 0.1s, box-shadow 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+}
+.shoot-btn:active {
+  transform: scale(0.86);
+  box-shadow: 0 0 8px rgba(255, 107, 53, 0.2);
+}

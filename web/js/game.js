@@ -4,12 +4,13 @@ const Save = {
   defaults: {
     coins: 0, bestScore: 0, activeVehicle: 0,
     ownedVehicles: [0],
-    upgrades: { speed: 0, control: 0, magnet: 0, shield: 0 }
+    upgrades: { speed: 0, control: 0, magnet: 0, shield: 0, cannon: 0 }
   },
   load() {
     try { this.data = JSON.parse(localStorage.getItem('pfe_save')) || { ...this.defaults, upgrades: { ...this.defaults.upgrades }, ownedVehicles: [0] }; }
     catch { this.data = { ...this.defaults, upgrades: { ...this.defaults.upgrades }, ownedVehicles: [0] }; }
     if (!this.data.upgrades) this.data.upgrades = { ...this.defaults.upgrades };
+    if (this.data.upgrades.cannon === undefined) this.data.upgrades.cannon = 0;
     if (!this.data.ownedVehicles) this.data.ownedVehicles = [0];
   },
   save() { localStorage.setItem('pfe_save', JSON.stringify(this.data)); }
@@ -17,30 +18,29 @@ const Save = {
 
 // ── VEHICLES ──
 const VEHICLES = [
-  { id: 0, name: 'Paper Plane',      emoji: '✉️',  cost: 0,      speed: 1.0, control: 1.0, color: '#ffffff', special: 'Floaty'       },
-  { id: 1, name: 'Upgraded Paper',   emoji: '📄',  cost: 150,    speed: 1.15,control: 1.1, color: '#e3f2fd', special: 'Sharper'      },
-  { id: 2, name: 'Drone',            emoji: '🚁',  cost: 400,    speed: 0.95,control: 1.7, color: '#90caf9', special: 'Precise'      },
-  { id: 3, name: 'Light Plane',      emoji: '🛩️', cost: 900,    speed: 1.3, control: 1.2, color: '#4fc3f7', special: 'Balanced'     },
-  { id: 4, name: 'Propeller Plane',  emoji: '✈️',  cost: 1800,   speed: 1.5, control: 1.15,color: '#ffd54f', special: 'Strong'       },
-  { id: 5, name: 'Rocket',           emoji: '🚀',  cost: 3200,   speed: 2.0, control: 0.85,color: '#ff7043', special: 'Blazing'      },
-  { id: 6, name: 'Small Airliner',   emoji: '🛫',  cost: 5000,   speed: 1.7, control: 1.0, color: '#ce93d8', special: 'Steady'       },
-  { id: 7, name: 'Large Airliner',   emoji: '🛬',  cost: 8000,   speed: 1.9, control: 0.9, color: '#b39ddb', special: 'Powerful'     },
-  { id: 8, name: 'Stealth Plane',    emoji: '🌑',  cost: 12000,  speed: 2.3, control: 1.2, color: '#546e7a', special: 'Invisible'    },
-  { id: 9, name: 'B-2 Spirit',       emoji: '🛸',  cost: 18000,  speed: 2.6, control: 1.3, color: '#37474f', special: 'Legendary'   },
+  { id: 0, name: 'Paper Plane',      emoji: '✉️',  cost: 0,      speed: 1.0, control: 1.0, color: '#ffffff', special: 'Floaty'    },
+  { id: 1, name: 'Upgraded Paper',   emoji: '📄',  cost: 150,    speed: 1.15,control: 1.1, color: '#e3f2fd', special: 'Sharper'   },
+  { id: 2, name: 'Drone',            emoji: '🚁',  cost: 400,    speed: 0.95,control: 1.7, color: '#90caf9', special: 'Precise'   },
+  { id: 3, name: 'Light Plane',      emoji: '🛩️', cost: 900,    speed: 1.3, control: 1.2, color: '#4fc3f7', special: 'Balanced'  },
+  { id: 4, name: 'Propeller Plane',  emoji: '✈️',  cost: 1800,   speed: 1.5, control: 1.15,color: '#ffd54f', special: 'Strong'    },
+  { id: 5, name: 'Rocket',           emoji: '🚀',  cost: 3200,   speed: 2.0, control: 0.85,color: '#ff7043', special: 'Blazing'   },
+  { id: 6, name: 'Small Airliner',   emoji: '🛫',  cost: 5000,   speed: 1.7, control: 1.0, color: '#ce93d8', special: 'Steady'    },
+  { id: 7, name: 'Large Airliner',   emoji: '🛬',  cost: 8000,   speed: 1.9, control: 0.9, color: '#b39ddb', special: 'Powerful'  },
+  { id: 8, name: 'Stealth Plane',    emoji: '🌑',  cost: 12000,  speed: 2.3, control: 1.2, color: '#546e7a', special: 'Invisible' },
+  { id: 9, name: 'B-2 Spirit',       emoji: '🛸',  cost: 18000,  speed: 2.6, control: 1.3, color: '#37474f', special: 'Legendary' },
 ];
 
 // ── UPGRADES ──
 const UPGRADES = [
-  { id: 'speed',   name: 'Engine Boost',   icon: '⚡', desc: 'Increases base speed',      maxLevel: 5, costs: [80, 150, 280, 500, 900] },
-  { id: 'control', name: 'Better Control', icon: '🎯', desc: 'Smoother turning',           maxLevel: 5, costs: [60, 120, 220, 400, 750] },
-  { id: 'magnet',  name: 'Coin Magnet',    icon: '🧲', desc: 'Attract nearby coins',       maxLevel: 4, costs: [100, 200, 400, 800] },
-  { id: 'shield',  name: 'Shield',         icon: '🛡', desc: 'Extra hit before crashing',  maxLevel: 3, costs: [150, 350, 700] },
+  { id: 'speed',   name: 'Engine Boost',   icon: '⚡', desc: 'Increases base speed',            maxLevel: 5, costs: [80, 150, 280, 500, 900] },
+  { id: 'control', name: 'Better Control', icon: '🎯', desc: 'Smoother lift and response',       maxLevel: 5, costs: [60, 120, 220, 400, 750] },
+  { id: 'magnet',  name: 'Coin Magnet',    icon: '🧲', desc: 'Attract nearby coins',             maxLevel: 4, costs: [100, 200, 400, 800] },
+  { id: 'shield',  name: 'Shield',         icon: '🛡', desc: 'Extra hit before crashing',        maxLevel: 3, costs: [150, 350, 700] },
+  { id: 'cannon',  name: 'Cannon',         icon: '🔫', desc: 'Shoot bullets — destroys birds!',  maxLevel: 3, costs: [300, 600, 1200] },
 ];
 
 // ── GAME CONFIG ──
 const CONFIG = {
-  gravity: 0,
-  playerLerp: 0.12,
   baseSpeed: 3.5,
   coinRadius: 12,
   magnetBase: 80,
@@ -48,13 +48,14 @@ const CONFIG = {
 
 // ── GAME STATE ──
 let canvas, ctx, W, H;
-let gameState = 'menu'; // menu | playing | dead
-let player, obstacles, coins, particles;
+let gameState = 'menu';
+let player, obstacles, coins, particles, bullets;
 let score, sessionCoins, distance, speed;
-let touchX, touchY, targetX, targetY;
+let isHolding;
+let shootCooldown, shootAutoTimer;
 let frameId, lastTime;
 let shieldHits;
-let spawnTimer, coinTimer, diffTimer;
+let spawnTimer, coinTimer;
 let clouds = [];
 
 // ── PLAYER ──
@@ -62,7 +63,7 @@ function createPlayer() {
   const v = VEHICLES[Save.data.activeVehicle];
   return {
     x: W * 0.25, y: H * 0.5,
-    targetX: W * 0.25, targetY: H * 0.5,
+    vy: 0,
     w: 48, h: 32,
     vehicle: v,
     trail: [],
@@ -71,15 +72,11 @@ function createPlayer() {
   };
 }
 
-// ── OBSTACLE ──
+// ── OBSTACLES ──
 function createPillar() {
   const gap = Math.max(H * 0.28, H * 0.42 - distance * 0.005);
   const gapY = H * 0.18 + Math.random() * (H * 0.64);
-  return {
-    type: 'pillar',
-    x: W + 40, gapY, gap,
-    w: 52, scored: false
-  };
+  return { type: 'pillar', x: W + 40, gapY, gap, w: 52, scored: false };
 }
 
 function createFan() {
@@ -111,12 +108,47 @@ function spawnCoin() {
   }
 }
 
-// ── PARTICLE ──
+// ── PARTICLES ──
 function spawnParticles(x, y, color, n = 8) {
   for (let i = 0; i < n; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 2 + Math.random() * 4;
-    particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: 1, color, r: 3 + Math.random() * 4 });
+    const spd = 2 + Math.random() * 4;
+    particles.push({ x, y, vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd, life: 1, color, r: 3 + Math.random() * 4 });
+  }
+}
+
+// ── SHOOT ──
+function shoot() {
+  if (gameState !== 'playing' || !player || !player.alive) return;
+  const cannonLevel = Save.data.upgrades.cannon || 0;
+  if (cannonLevel === 0 || shootCooldown > 0) return;
+
+  const cooldowns = [0, 1.0, 0.55, 0.4];
+  shootCooldown = cooldowns[cannonLevel];
+
+  const bulletVx = speed + 360;
+  const bR = 6;
+
+  if (cannonLevel >= 3) {
+    // Level 3: double spread shot
+    bullets.push({ x: player.x + 26, y: player.y - 5, vx: bulletVx, vy: -40, r: bR });
+    bullets.push({ x: player.x + 26, y: player.y + 5, vx: bulletVx, vy:  40, r: bR });
+  } else {
+    // Level 1-2: single straight shot
+    bullets.push({ x: player.x + 26, y: player.y, vx: bulletVx, vy: 0, r: bR });
+  }
+  spawnParticles(player.x + 20, player.y, '#ff9800', 4);
+}
+
+function updateShootBtn() {
+  const btn = document.getElementById('shoot-btn');
+  if (!btn) return;
+  const level = Save.data.upgrades.cannon || 0;
+  if (level > 0 && gameState === 'playing') {
+    btn.classList.remove('hidden');
+    btn.textContent = level >= 3 ? '🔥' : '🔫';
+  } else {
+    btn.classList.add('hidden');
   }
 }
 
@@ -134,7 +166,7 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
     ctx.beginPath(); ctx.moveTo(28,0); ctx.lineTo(-20,-14); ctx.lineTo(-10,0); ctx.lineTo(-20,14); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#e0e0e0'; ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(-20,-14); ctx.lineTo(-10,-6); ctx.closePath(); ctx.fill();
 
-  } else if (id === 1) { // Upgraded Paper Plane (sharper, gold fold)
+  } else if (id === 1) { // Upgraded Paper Plane
     ctx.fillStyle = '#f5f5f5'; ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(32,0); ctx.lineTo(-22,-13); ctx.lineTo(-8,0); ctx.lineTo(-22,13); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#ffd54f';
@@ -143,7 +175,6 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
 
   } else if (id === 2) { // Drone
     ctx.fillStyle = '#546e7a'; ctx.beginPath(); ctx.ellipse(0,0,14,7,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#90a4ae';
     const arms = [[-14,-14],[14,-14],[14,14],[-14,14]];
     arms.forEach(([ax,ay])=>{
       ctx.save(); ctx.translate(ax,ay);
@@ -172,7 +203,6 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
     ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(-4,-10,15,5,0.3,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(-4,10,15,5,-0.3,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.ellipse(8,0,9,7,0,0,Math.PI*2); ctx.fill();
-    // Propeller
     ctx.save(); ctx.translate(30,0); ctx.rotate(rot*2);
     ctx.fillStyle='#5d4037'; ctx.fillRect(-2,-16,4,32); ctx.fillRect(-16,-2,32,4);
     ctx.restore();
@@ -183,7 +213,6 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
     ctx.fillStyle='#bf360c'; ctx.beginPath(); ctx.moveTo(-22,-5); ctx.lineTo(-34,-14); ctx.lineTo(-22,0); ctx.closePath(); ctx.fill();
     ctx.beginPath(); ctx.moveTo(-22,5); ctx.lineTo(-34,14); ctx.lineTo(-22,0); ctx.closePath(); ctx.fill();
     ctx.fillStyle='rgba(100,220,255,0.7)'; ctx.beginPath(); ctx.ellipse(14,0,9,6,0,0,Math.PI*2); ctx.fill();
-    // Flame
     const fl = 6 + Math.random()*8;
     const grd = ctx.createRadialGradient(-22,0,0,-22,0,fl+8);
     grd.addColorStop(0,'rgba(255,255,200,0.9)'); grd.addColorStop(0.4,'rgba(255,120,0,0.7)'); grd.addColorStop(1,'rgba(255,0,0,0)');
@@ -203,7 +232,6 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
     ctx.fillStyle='#4527a0'; ctx.beginPath(); ctx.moveTo(38,0); ctx.lineTo(-22,-14); ctx.lineTo(-28,0); ctx.lineTo(-22,14); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(-4,-13,22,5,0.25,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(-4,13,22,5,-0.25,0,Math.PI*2); ctx.fill();
-    // 2 engines per wing
     [-18,2].forEach(ex=>[-13,13].forEach(ey=>{
       ctx.fillStyle='#7e57c2'; ctx.beginPath(); ctx.ellipse(ex,ey,7,4,0,0,Math.PI*2); ctx.fill();
     }));
@@ -215,7 +243,6 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
     ctx.fillStyle='#37474f'; ctx.beginPath(); ctx.moveTo(-24,0); ctx.lineTo(-32,-22); ctx.lineTo(-28,-10); ctx.closePath(); ctx.fill();
     ctx.beginPath(); ctx.moveTo(-24,0); ctx.lineTo(-32,22); ctx.lineTo(-28,10); ctx.closePath(); ctx.fill();
     ctx.fillStyle='rgba(0,200,255,0.3)'; ctx.beginPath(); ctx.ellipse(10,0,10,5,0,0,Math.PI*2); ctx.fill();
-    // Stealth glow
     ctx.strokeStyle='rgba(0,255,200,0.3)'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(36,0); ctx.lineTo(-10,-6); ctx.lineTo(-32,-22); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(36,0); ctx.lineTo(-10,6); ctx.lineTo(-32,22); ctx.stroke();
@@ -228,7 +255,6 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
     ctx.beginPath(); ctx.moveTo(10,-6); ctx.lineTo(-16,-38); ctx.lineTo(-10,-20); ctx.closePath(); ctx.fill();
     ctx.beginPath(); ctx.moveTo(10,6); ctx.lineTo(-16,38); ctx.lineTo(-10,20); ctx.closePath(); ctx.fill();
     ctx.fillStyle='rgba(0,220,255,0.45)'; ctx.beginPath(); ctx.ellipse(14,0,11,5,0,0,Math.PI*2); ctx.fill();
-    // 4 engine slots
     [-6,6].forEach(ey=>[-12,0].forEach(ex=>{
       ctx.fillStyle='rgba(0,255,150,0.5)'; ctx.beginPath(); ctx.ellipse(ex,ey,5,3,0,0,Math.PI*2); ctx.fill();
     }));
@@ -242,20 +268,18 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
 // ── DRAW OBSTACLE ──
 function drawObstacle(obs) {
   if (obs.type === 'pillar') {
-    // Top pillar
     ctx.fillStyle = '#4a7c3f';
     ctx.fillRect(obs.x - obs.w / 2, 0, obs.w, obs.gapY - obs.gap / 2);
     ctx.fillStyle = '#5d9e3b';
     ctx.fillRect(obs.x - obs.w / 2 - 6, obs.gapY - obs.gap / 2 - 20, obs.w + 12, 20);
-    // Bottom pillar
     ctx.fillStyle = '#4a7c3f';
     ctx.fillRect(obs.x - obs.w / 2, obs.gapY + obs.gap / 2, obs.w, H);
     ctx.fillStyle = '#5d9e3b';
     ctx.fillRect(obs.x - obs.w / 2 - 6, obs.gapY + obs.gap / 2, obs.w + 12, 20);
-    // Stripes
     ctx.fillStyle = 'rgba(255,255,255,0.1)';
     for (let y = 0; y < obs.gapY - obs.gap / 2; y += 24) ctx.fillRect(obs.x - obs.w / 2 + 10, y, 8, 12);
     for (let y = obs.gapY + obs.gap / 2 + 4; y < H; y += 24) ctx.fillRect(obs.x - obs.w / 2 + 10, y, 8, 12);
+
   } else if (obs.type === 'fan') {
     obs.angle += 0.08;
     ctx.save(); ctx.translate(obs.x, obs.y);
@@ -270,7 +294,6 @@ function drawObstacle(obs) {
     }
     ctx.restore();
     ctx.fillStyle = '#37474f'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
-    // Wind arrows
     const dir = obs.windForce > 0 ? 1 : -1;
     ctx.strokeStyle = 'rgba(100,200,255,0.4)'; ctx.lineWidth = 2;
     for (let i = 1; i <= 3; i++) {
@@ -281,6 +304,7 @@ function drawObstacle(obs) {
       ctx.stroke();
     }
     ctx.restore();
+
   } else if (obs.type === 'bird') {
     obs.wing += 0.15;
     ctx.save(); ctx.translate(obs.x, obs.y);
@@ -305,12 +329,10 @@ function drawCoin(coin, t) {
   ctx.translate(coin.x, coin.y);
   const scale = 0.9 + 0.1 * Math.sin(t * 3 + coin.anim);
   ctx.scale(scale, scale);
-  // Glow
   const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, coin.r * 1.8);
   grd.addColorStop(0, 'rgba(255,220,0,0.4)');
   grd.addColorStop(1, 'rgba(255,220,0,0)');
   ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(0, 0, coin.r * 1.8, 0, Math.PI * 2); ctx.fill();
-  // Coin
   ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(0, 0, coin.r, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#FFA000'; ctx.beginPath(); ctx.arc(0, 0, coin.r * 0.75, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#FFD700';
@@ -319,16 +341,30 @@ function drawCoin(coin, t) {
   ctx.restore();
 }
 
-// ── DRAW BG ──
-function drawBackground(scrollX) {
-  // Sky gradient
+// ── DRAW BULLET ──
+function drawBullet(b) {
+  ctx.save();
+  // Trail glow
+  const grd = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r * 3.5);
+  grd.addColorStop(0, 'rgba(255,230,60,1)');
+  grd.addColorStop(0.4, 'rgba(255,100,0,0.7)');
+  grd.addColorStop(1, 'rgba(255,50,0,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 3.5, 0, Math.PI * 2); ctx.fill();
+  // Core
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.55, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// ── DRAW BACKGROUND ──
+function drawBackground() {
   const grd = ctx.createLinearGradient(0, 0, 0, H);
   grd.addColorStop(0, '#5ba8d4');
   grd.addColorStop(0.7, '#87CEEB');
   grd.addColorStop(1, '#b8e4f9');
   ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
 
-  // Clouds
   clouds.forEach(c => {
     c.x -= c.speed;
     if (c.x + c.w < -20) { c.x = W + 20; c.y = H * 0.05 + Math.random() * H * 0.4; }
@@ -342,10 +378,11 @@ function drawBackground(scrollX) {
 // ── INIT GAME ──
 function initGame() {
   score = 0; sessionCoins = 0; distance = 0;
-  obstacles = []; coins = []; particles = [];
-  spawnTimer = 0; coinTimer = 0; diffTimer = 0;
-  touchX = null; touchY = null;
-  targetX = W * 0.25; targetY = H * 0.5;
+  obstacles = []; coins = []; particles = []; bullets = [];
+  spawnTimer = 0; coinTimer = 0;
+  isHolding = false;
+  shootCooldown = 0;
+  shootAutoTimer = 3;
   const upg = Save.data.upgrades;
   shieldHits = upg.shield;
   const v = VEHICLES[Save.data.activeVehicle];
@@ -356,84 +393,129 @@ function initGame() {
     w: 60 + Math.random() * 80, h: 30 + Math.random() * 30,
     speed: 0.3 + Math.random() * 0.5, alpha: 0.6 + Math.random() * 0.35
   }));
+  updateShootBtn();
 }
 
 // ── UPDATE ──
 function update(dt) {
   if (!player.alive) return;
+
   distance += speed * dt * 60;
   score = Math.floor(distance / 10);
-  speed = Math.min(CONFIG.baseSpeed * VEHICLES[Save.data.activeVehicle].speed * (1 + Save.data.upgrades.speed * 0.12) + distance * 0.0003, 12);
+  speed = Math.min(
+    CONFIG.baseSpeed * VEHICLES[Save.data.activeVehicle].speed * (1 + Save.data.upgrades.speed * 0.12) + distance * 0.0003,
+    12
+  );
 
-  // Player move
+  // ── PHYSICS: hold screen = fly up, release = fall ──
   const upg = Save.data.upgrades;
-  const controlLerp = CONFIG.playerLerp * VEHICLES[Save.data.activeVehicle].control * (1 + upg.control * 0.15);
-  if (touchX !== null) {
-    player.x += (targetX - player.x) * controlLerp;
-    player.y += (targetY - player.y) * controlLerp;
+  const controlFactor = VEHICLES[Save.data.activeVehicle].control * (1 + upg.control * 0.15);
+  const gravity   = 520;                        // px/s² downward
+  const uplift    = 740;                        // px/s² upward while holding
+  const maxFall   = 340;                        // px/s max downward velocity
+  const maxRise   = -270 * Math.min(controlFactor, 1.9); // px/s max upward velocity
+
+  if (isHolding) {
+    player.vy = Math.max(player.vy - uplift * controlFactor * dt, maxRise);
+  } else {
+    player.vy = Math.min(player.vy + gravity * dt, maxFall);
   }
-  // Clamp
-  player.x = Math.max(player.w * 0.5, Math.min(W - player.w * 0.5, player.x));
+  player.y += player.vy * dt;
+
+  // Clamp to screen
   player.y = Math.max(player.h * 0.5, Math.min(H - player.h * 0.5, player.y));
+  // Clamp velocity if hitting boundary
+  if (player.y === player.h * 0.5 || player.y === H - player.h * 0.5) player.vy = 0;
 
   // Trail
   player.trail.unshift({ x: player.x, y: player.y });
   if (player.trail.length > 12) player.trail.pop();
 
-  // Invincible timer
+  // Timers
   if (player.invincible > 0) player.invincible -= dt;
+  if (shootCooldown > 0) shootCooldown -= dt;
 
-  // Spawn obstacles
+  // Auto-fire at cannon level 3
+  const cannonLevel = upg.cannon || 0;
+  if (cannonLevel >= 3) {
+    shootAutoTimer -= dt;
+    if (shootAutoTimer <= 0) { shoot(); shootAutoTimer = 2.5; }
+  }
+
+  // ── BULLETS ──
+  const nextBullets = [];
+  for (const b of bullets) {
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    let destroyed = false;
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const obs = obstacles[i];
+      if (obs.type === 'bird' || obs.type === 'fan') {
+        const dx = b.x - obs.x, dy = b.y - obs.y;
+        const hitR = obs.type === 'bird' ? obs.r + b.r : 22 + b.r;
+        if (Math.sqrt(dx * dx + dy * dy) < hitR) {
+          spawnParticles(obs.x, obs.y, obs.type === 'bird' ? '#8d6e63' : '#78909c', 10);
+          score += obs.type === 'bird' ? 15 : 8;
+          obstacles.splice(i, 1);
+          destroyed = true;
+          break;
+        }
+      }
+    }
+    if (!destroyed && b.x < W + 80 && b.x > -20) nextBullets.push(b);
+  }
+  bullets = nextBullets;
+
+  // ── SPAWN OBSTACLES ──
   spawnTimer -= dt;
   if (spawnTimer <= 0) {
-    const d = distance;
     const r = Math.random();
-    if (d < 500 || r < 0.7) obstacles.push(createPillar());
+    if (distance < 500 || r < 0.7) obstacles.push(createPillar());
     else if (r < 0.85) obstacles.push(createFan());
     else obstacles.push(createBird());
     spawnTimer = Math.max(0.9, 2.2 - distance * 0.0004);
   }
 
-  // Spawn coins
+  // ── SPAWN COINS ──
   coinTimer -= dt;
   if (coinTimer <= 0) { spawnCoin(); coinTimer = 0.8 + Math.random() * 0.6; }
 
   // Magnet range
   const magnetRange = CONFIG.magnetBase + upg.magnet * 50;
 
-  // Update obstacles
+  // ── UPDATE OBSTACLES ──
   obstacles = obstacles.filter(obs => {
     if (obs.type === 'pillar') {
       obs.x -= speed;
       if (!obs.scored && obs.x < player.x) { obs.scored = true; score += 5; }
-      // Collision
-      if (!player.invincible || player.invincible <= 0) {
-        const px = player.x, py = player.y;
+      if (player.invincible <= 0) {
         const hw = player.w * 0.38, hh = player.h * 0.38;
-        if (px + hw > obs.x - obs.w / 2 && px - hw < obs.x + obs.w / 2) {
-          if (py - hh < obs.gapY - obs.gap / 2 || py + hh > obs.gapY + obs.gap / 2) {
+        if (player.x + hw > obs.x - obs.w / 2 && player.x - hw < obs.x + obs.w / 2) {
+          if (player.y - hh < obs.gapY - obs.gap / 2 || player.y + hh > obs.gapY + obs.gap / 2) {
             handleHit();
           }
         }
       }
       return obs.x > -obs.w;
+
     } else if (obs.type === 'fan') {
       obs.x -= speed;
       if (obs.x > 0 && obs.x < W) {
         const dx = player.x - obs.x, dy = player.y - obs.y;
         if (Math.sqrt(dx * dx + dy * dy) < 100) {
-          targetY += obs.windForce * dt * 60 * 0.4;
+          // Wind pushes player vertically
+          player.vy += obs.windForce * 100 * dt;
         }
       }
-      // Collision
-      if (!player.invincible || player.invincible <= 0) {
+      if (player.invincible <= 0) {
         const dx = player.x - obs.x, dy = player.y - obs.y;
         if (Math.sqrt(dx * dx + dy * dy) < 28) handleHit();
       }
       return obs.x > -60;
+
     } else if (obs.type === 'bird') {
       obs.x += obs.vx;
-      if (!player.invincible || player.invincible <= 0) {
+      if (player.invincible <= 0) {
         const dx = player.x - obs.x, dy = player.y - obs.y;
         if (Math.sqrt(dx * dx + dy * dy) < obs.r + 20) handleHit();
       }
@@ -442,21 +524,15 @@ function update(dt) {
     return true;
   });
 
-  // Update coins
+  // ── UPDATE COINS ──
   coins = coins.filter(c => {
     if (c.collected) return false;
     c.x -= speed;
-    // Magnet
     const dx = player.x - c.x, dy = player.y - c.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < magnetRange) {
-      c.x += (dx / dist) * 5;
-      c.y += (dy / dist) * 5;
-    }
-    // Collect
+    if (dist < magnetRange) { c.x += (dx / dist) * 5; c.y += (dy / dist) * 5; }
     if (dist < c.r + 22) {
-      c.collected = true;
-      sessionCoins++;
+      c.collected = true; sessionCoins++;
       spawnParticles(c.x, c.y, '#FFD700', 5);
       document.getElementById('hud-coins').textContent = sessionCoins;
       return false;
@@ -464,16 +540,16 @@ function update(dt) {
     return c.x > -20;
   });
 
-  // Particles
+  // ── PARTICLES ──
   particles = particles.filter(p => {
     p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= 0.04;
     return p.life > 0;
   });
 
+  // ── HUD ──
   document.getElementById('hud-score').textContent = score;
   const distM = Math.floor(distance);
   document.getElementById('hud-distance').textContent = distM + 'm';
-  // Show personal best badge in real time
   const pb = document.getElementById('hud-pb-badge');
   if (distM > Save.data.bestScore && Save.data.bestScore > 0) {
     pb.classList.remove('hidden');
@@ -482,6 +558,7 @@ function update(dt) {
   }
 }
 
+// ── HANDLE HIT ──
 function handleHit() {
   if (shieldHits > 0) {
     shieldHits--;
@@ -497,7 +574,7 @@ function handleHit() {
 // ── DRAW ──
 function draw(t) {
   ctx.clearRect(0, 0, W, H);
-  drawBackground(distance);
+  drawBackground();
 
   // Trail
   player.trail.forEach((pt, i) => {
@@ -510,18 +587,22 @@ function draw(t) {
   // Coins
   coins.forEach(c => drawCoin(c, t));
 
+  // Bullets (behind obstacles)
+  bullets.forEach(b => drawBullet(b));
+
   // Obstacles
   obstacles.forEach(o => drawObstacle(o));
 
-  // Player
-  const tilt = (targetY - player.y) * 0.02;
+  // Shield flash
   if (player.invincible > 0 && Math.floor(t * 8) % 2 === 0) {
-    // Shield flash
     ctx.save(); ctx.translate(player.x, player.y);
     ctx.strokeStyle = 'rgba(100,255,100,0.8)'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(0, 0, 36, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
+
+  // Player — tilt based on vertical velocity
+  const tilt = Math.max(-0.45, Math.min(0.45, player.vy / 300));
   drawVehicle(ctx, player.x, player.y, player.vehicle, tilt);
 
   // Particles
@@ -530,7 +611,7 @@ function draw(t) {
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2); ctx.fill();
   });
 
-  // Distance indicator
+  // Distance watermark
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   ctx.font = '12px Arial'; ctx.textAlign = 'left';
   ctx.fillText(`${Math.floor(distance)}m`, 8, H - 12);
@@ -561,6 +642,7 @@ function showScreen(id) {
 function showMenu() {
   gameState = 'menu';
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
+  document.getElementById('shoot-btn').classList.add('hidden');
   updateMenuUI();
   showScreen('screen-menu');
   drawMenuVehicle();
@@ -580,14 +662,13 @@ function startGame() {
 function showGameOver() {
   gameState = 'dead';
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
-  // Save coins
+  document.getElementById('shoot-btn').classList.add('hidden');
   Save.data.coins += sessionCoins;
   const finalDist = Math.floor(distance);
   const isNew = finalDist > Save.data.bestScore;
   if (isNew) Save.data.bestScore = finalDist;
   Save.save();
-  // Update UI
-  document.getElementById('go-score').textContent = Math.floor(distance) + 'm';
+  document.getElementById('go-score').textContent = finalDist + 'm';
   document.getElementById('go-best').textContent = Save.data.bestScore + 'm';
   document.getElementById('go-coins').textContent = `+${sessionCoins}`;
   document.getElementById('go-newbest').classList.toggle('hidden', !isNew);
@@ -678,38 +759,34 @@ function buyUpgrade(id) {
   }
 }
 
-// ── TOUCH ──
+// ── TOUCH / INPUT ──
 function setupTouch() {
   const gc = document.getElementById('screen-game');
+
+  // Main screen: hold = fly up
   gc.addEventListener('touchstart', e => {
     e.preventDefault();
-    const t = e.touches[0];
-    const r = canvas.getBoundingClientRect();
-    touchX = t.clientX - r.left; touchY = t.clientY - r.top;
-    targetX = touchX; targetY = touchY;
+    isHolding = true;
   }, { passive: false });
-  gc.addEventListener('touchmove', e => {
+  gc.addEventListener('touchend', () => { isHolding = false; });
+  gc.addEventListener('touchcancel', () => { isHolding = false; });
+
+  // Mouse fallback for desktop
+  gc.addEventListener('mousedown', () => { isHolding = true; });
+  gc.addEventListener('mouseup', () => { isHolding = false; });
+  gc.addEventListener('mouseleave', () => { isHolding = false; });
+
+  // Shoot button — separate from main hold area
+  const shootBtn = document.getElementById('shoot-btn');
+  shootBtn.addEventListener('touchstart', e => {
     e.preventDefault();
-    const t = e.touches[0];
-    const r = canvas.getBoundingClientRect();
-    touchX = t.clientX - r.left; touchY = t.clientY - r.top;
-    targetX = touchX; targetY = touchY;
+    e.stopPropagation(); // don't trigger hold
+    shoot();
   }, { passive: false });
-  gc.addEventListener('touchend', () => { touchX = null; });
-  // Mouse (desktop)
-  gc.addEventListener('mousemove', e => {
-    if (e.buttons === 1) {
-      const r = canvas.getBoundingClientRect();
-      touchX = e.clientX - r.left; touchY = e.clientY - r.top;
-      targetX = touchX; targetY = touchY;
-    }
+  shootBtn.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    shoot();
   });
-  gc.addEventListener('mousedown', e => {
-    const r = canvas.getBoundingClientRect();
-    touchX = e.clientX - r.left; touchY = e.clientY - r.top;
-    targetX = touchX; targetY = touchY;
-  });
-  gc.addEventListener('mouseup', () => { touchX = null; });
 }
 
 // ── INIT ──
