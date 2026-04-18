@@ -295,11 +295,11 @@ const Save = {
 // ── GAME STATE ───────────────────────────────────────────
 let canvas, ctx, W, H;
 let gameState = 'menu'; // menu | playing | landing | levelcomplete | dead | shop
-let player, obstacles, coins, ammoPickups, particles, bullets, mysteryBoxes, enemies, enemyBullets;
+let player, obstacles, coins, ammoPickups, shieldPickups, particles, bullets, mysteryBoxes, enemies, enemyBullets;
 let distance, speed, sessionCoins, ammo;
 let frameId, lastTime;
 let shieldHits, shootCooldown, shootAutoTimer;
-let spawnTimer, coinTimer, ammoTimer, mysteryTimer, enemyTimer;
+let spawnTimer, coinTimer, ammoTimer, mysteryTimer, enemyTimer, shieldPickupTimer;
 let popups = []; // [{text, x, y, alpha, timer, color}]
 let clouds = [], stars = [], bgParticles = [];
 let coinCombo = 0, comboTimer = 0;
@@ -348,6 +348,11 @@ function createBird() {
 // ── AMMO PICKUP ──────────────────────────────────────────
 function createAmmoCrate() {
   return { x: W + 40, y: H * 0.15 + Math.random() * H * 0.70, collected: false, anim: 0 };
+}
+
+// ── SHIELD PICKUP (levels 30+) ────────────────────────────
+function createShieldPickup() {
+  return { x: W + 40, y: H * 0.15 + Math.random() * H * 0.70, collected: false, anim: Math.random() * Math.PI * 2 };
 }
 
 // ── MYSTERY BOX ──────────────────────────────────────────
@@ -571,12 +576,13 @@ function initGame(levelNum) {
   currentBiome = levelData.biome;
 
   distance = 0; sessionCoins = 0;
-  obstacles = []; coins = []; ammoPickups = []; particles = []; bullets = []; mysteryBoxes = [];
+  obstacles = []; coins = []; ammoPickups = []; shieldPickups = []; particles = []; bullets = []; mysteryBoxes = [];
   enemies = []; enemyBullets = []; popups = [];
   coinCombo = 0; comboTimer = 0; screenShake = 0; lastLightningTime = 0;
   spawnTimer = 1.5; coinTimer = 1.0; ammoTimer = 10 + Math.random() * 6;
   mysteryTimer = 15 + Math.random() * 10;
   enemyTimer = currentLevel >= 25 ? 8 + Math.random() * 6 : 99999;
+  shieldPickupTimer = currentLevel >= 30 ? 18 + Math.random() * 12 : 99999;
   shootCooldown = 0; shootAutoTimer = 3;
   isHolding = false;
 
@@ -730,6 +736,15 @@ function update(dt) {
     mysteryTimer = 15 + Math.random() * 10;
   }
 
+  // Shield pickup spawn (levels 30+, every 18–30s)
+  if (currentLevel >= 30) {
+    shieldPickupTimer -= dt;
+    if (shieldPickupTimer <= 0) {
+      shieldPickups.push(createShieldPickup());
+      shieldPickupTimer = 18 + Math.random() * 12;
+    }
+  }
+
   const magnetRange = (80 + upg.magnet * 50) * (veh.id === 1 ? 1.4 : 1.0); // Upgraded Paper perk
 
   // ── UPDATE OBSTACLES ──
@@ -796,6 +811,23 @@ function update(dt) {
       return false;
     }
     return ac.x > -30;
+  });
+
+  // ── UPDATE SHIELD PICKUPS ──
+  shieldPickups = shieldPickups.filter(sp => {
+    if (sp.collected) return false;
+    sp.x -= speed * 0.6;
+    sp.anim += dt * 2;
+    const dx = player.x - sp.x, dy = player.y - sp.y;
+    if (Math.sqrt(dx * dx + dy * dy) < 36) {
+      sp.collected = true;
+      shieldHits = Math.min(shieldHits + 1, 5);
+      spawnParticles(sp.x, sp.y, '#4CAF50', 14);
+      Snd.play('shield');
+      popups.push({ text: '🛡 +SHIELD!', x: sp.x, y: sp.y - 24, alpha: 1, timer: 1.8, color: '#4CAF50' });
+      return false;
+    }
+    return sp.x > -40;
   });
 
   // ── UPDATE COINS ──
@@ -1178,6 +1210,43 @@ function drawAmmoCrate(ac) {
   ctx.restore();
 }
 
+// ── DRAW SHIELD PICKUP ───────────────────────────────────
+function drawShieldPickup(sp) {
+  ctx.save();
+  ctx.translate(sp.x, sp.y + Math.sin(sp.anim) * 4);
+  // Pulsing green glow
+  const pulse = 0.5 + 0.5 * Math.sin(sp.anim * 2);
+  const grd = ctx.createRadialGradient(0,0,0,0,0,30);
+  grd.addColorStop(0, `rgba(76,175,80,${0.3 + pulse * 0.2})`);
+  grd.addColorStop(1, 'rgba(76,175,80,0)');
+  ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(0,0,30,0,Math.PI*2); ctx.fill();
+  // Shield body
+  ctx.fillStyle = '#2e7d32';
+  ctx.beginPath();
+  ctx.moveTo(0, -18);
+  ctx.bezierCurveTo(16, -18, 18, -8, 18, 2);
+  ctx.bezierCurveTo(18, 12, 10, 20, 0, 24);
+  ctx.bezierCurveTo(-10, 20, -18, 12, -18, 2);
+  ctx.bezierCurveTo(-18, -8, -16, -18, 0, -18);
+  ctx.closePath();
+  ctx.fill();
+  // Shield highlight
+  ctx.fillStyle = '#4CAF50';
+  ctx.beginPath();
+  ctx.moveTo(0, -14);
+  ctx.bezierCurveTo(10, -14, 12, -6, 12, 1);
+  ctx.bezierCurveTo(12, 8, 6, 14, 0, 18);
+  ctx.bezierCurveTo(-6, 14, -12, 8, -12, 1);
+  ctx.bezierCurveTo(-12, -6, -10, -14, 0, -14);
+  ctx.closePath();
+  ctx.fill();
+  // Shield icon (cross/plus)
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fillRect(-2, -8, 4, 16);
+  ctx.fillRect(-8, -2, 16, 4);
+  ctx.restore();
+}
+
 // ── DRAW MYSTERY BOX ─────────────────────────────────────
 function drawMysteryBox(mb) {
   ctx.save();
@@ -1410,9 +1479,10 @@ function draw(t) {
     ctx.beginPath(); ctx.arc(pt.x, pt.y, (1 - i/player.trail.length)*8, 0, Math.PI*2); ctx.fill();
   });
 
-  // Coins, ammo, mystery boxes, bullets, enemies, obstacles
+  // Coins, ammo, shields, mystery boxes, bullets, enemies, obstacles
   coins.forEach(c => drawCoin(c, t));
   ammoPickups.forEach(ac => drawAmmoCrate(ac));
+  shieldPickups.forEach(sp => drawShieldPickup(sp));
   mysteryBoxes.forEach(mb => drawMysteryBox(mb));
   bullets.forEach(b => drawBullet(b));
   enemies.forEach(en => drawEnemy(en));
