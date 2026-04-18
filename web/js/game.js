@@ -622,7 +622,7 @@ function update(dt) {
   }
 
   // Distance (calibrated: ~10-27 m/s depending on speed level)
-  distance += speed * dt * 60 * 0.05;
+  distance += speed * dt * 60 * 0.058;
 
   // Speed updates slightly in-level
   const upg = Save.data.upgrades;
@@ -895,7 +895,7 @@ function updateHUD() {
   document.getElementById('hud-distance').textContent = distM + 'm';
   document.getElementById('hud-goal').textContent = '/ ' + levelData.goal + 'm';
   document.getElementById('hud-level').textContent = currentLevel;
-  document.getElementById('hud-coins').textContent = Save.data.coins;
+  document.getElementById('hud-coins').textContent = Save.data.coins + sessionCoins;
 
   // Ammo display
   const cap = maxAmmo();

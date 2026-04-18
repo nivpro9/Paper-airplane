@@ -83,6 +83,7 @@ body {
 .stats-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .stat { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.25); border-radius: 24px; padding: 8px 16px; backdrop-filter: blur(10px); }
 .stat span { color: white; font-size: 18px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+#menu-coins { color: #FFD700; text-shadow: 0 2px 6px rgba(200,120,0,0.5); }
 .coin-dot {
   display: inline-block; width: 22px; height: 22px; border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #FFE082, #FFD700 50%, #F9A825);
@@ -124,9 +125,9 @@ body {
 .btn-play {
   background: linear-gradient(135deg, #FF6B35, #f7410f);
   color: white; border: none; border-radius: 50px;
-  font-size: 22px; font-weight: bold; letter-spacing: 3px;
-  padding: 18px 64px; cursor: pointer;
-  box-shadow: 0 6px 20px rgba(255,107,53,0.5), 0 2px 0 rgba(0,0,0,0.2);
+  font-size: 28px; font-weight: bold; letter-spacing: 3px;
+  padding: 22px 80px; cursor: pointer; width: 100%; max-width: 320px;
+  box-shadow: 0 7px 0 #c03000, 0 10px 24px rgba(255,107,53,0.5);
   transition: transform .1s;
 }
 .btn-play:active { transform: scale(0.96) translateY(2px); }
@@ -142,24 +143,24 @@ body {
 .btn-levels {
   background: linear-gradient(135deg, #1976D2, #0D47A1);
   color: white; border: 3px solid rgba(255,255,255,0.4); border-radius: 50px;
-  font-size: 18px; font-weight: bold; letter-spacing: 2px;
-  padding: 14px 48px; cursor: pointer; width: 100%; max-width: 300px;
-  box-shadow: 0 5px 0 #0D47A1, 0 8px 20px rgba(13,71,161,0.5);
+  font-size: 22px; font-weight: bold; letter-spacing: 2px;
+  padding: 18px 60px; cursor: pointer; width: 100%; max-width: 320px;
+  box-shadow: 0 6px 0 #0D47A1, 0 10px 24px rgba(13,71,161,0.5);
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
   transition: transform .1s;
 }
-.btn-levels:active { transform: scale(0.96) translateY(3px); box-shadow: 0 2px 0 #0D47A1; }
+.btn-levels:active { transform: scale(0.96) translateY(4px); box-shadow: 0 2px 0 #0D47A1; }
 
 .btn-upgrades {
   background: linear-gradient(135deg, #FF8F00, #E65100);
   color: white; border: 3px solid rgba(255,255,255,0.4); border-radius: 50px;
-  font-size: 18px; font-weight: bold; letter-spacing: 2px;
-  padding: 14px 48px; cursor: pointer; width: 100%; max-width: 300px;
-  box-shadow: 0 5px 0 #BF360C, 0 8px 20px rgba(230,81,0,0.5);
+  font-size: 22px; font-weight: bold; letter-spacing: 2px;
+  padding: 18px 60px; cursor: pointer; width: 100%; max-width: 320px;
+  box-shadow: 0 6px 0 #BF360C, 0 10px 24px rgba(230,81,0,0.5);
   text-shadow: 0 2px 4px rgba(0,0,0,0.3);
   transition: transform .1s;
 }
-.btn-upgrades:active { transform: scale(0.96) translateY(3px); box-shadow: 0 2px 0 #BF360C; }
+.btn-upgrades:active { transform: scale(0.96) translateY(4px); box-shadow: 0 2px 0 #BF360C; }
 
 .btn-menu {
   background: transparent; color: rgba(255,255,255,0.7);
