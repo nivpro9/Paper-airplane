@@ -44,9 +44,9 @@ function generateLevels() {
       id:           i,
       biome:        Math.min(6, Math.floor(idx / 10)),
       goal:         Math.round(250 + Math.pow(t, 0.55) * 3750), // 250 → 4000 m
-      speed:        3 + t * 6,                                   // 3 → 9 px/frame
-      gapFraction:  0.42 - t * 0.15,                             // 0.42 → 0.27 H (min gap softer)
-      spawnInterval:Math.max(0.65, 2.0 - t * 1.35),              // 2.0 → 0.65 s
+      speed:        (3 + t * 6) * 0.88,                           // 2.64 → 7.92 px/frame (-12%)
+      gapFraction:  (0.42 - t * 0.15) * 1.12,                    // 0.47 → 0.30 H (+12% gap)
+      spawnInterval:Math.max(0.65, (2.0 - t * 1.35) * 1.12),     // 2.24 → 0.73 s (+12% interval)
       fanChance:    i < 10 ? 0 : Math.min(0.25, (i - 10) * 0.018),
       birdChance:   i < 20 ? 0 : Math.min(0.25, (i - 20) * 0.015),
     };
