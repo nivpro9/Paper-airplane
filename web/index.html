@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<link rel="stylesheet" href="css/style.css?v=15">
+<link rel="stylesheet" href="css/style.css?v=16">
 </head>
 <body>
 
@@ -99,18 +99,6 @@
 <div id="screen-game" class="screen">
   <canvas id="gameCanvas"></canvas>
   <button id="shoot-btn" class="shoot-btn hidden">🔫</button>
-  <button id="pause-btn" class="pause-btn hidden" onclick="pauseGame()">⏸</button>
-
-  <!-- PAUSE OVERLAY -->
-  <div id="pause-overlay" class="pause-overlay hidden">
-    <div class="pause-box">
-      <div class="pause-icon">⏸</div>
-      <div class="pause-title">PAUSED</div>
-      <button class="btn-play" style="font-size:18px;padding:14px 48px;max-width:210px" onclick="resumeGame()">▶ RESUME</button>
-      <button class="btn-menu" style="margin-top:4px" onclick="goMenuFromPause()">MENU</button>
-    </div>
-  </div>
-
   <div class="game-hud">
     <div class="hud-left">
       <span class="hud-label" data-i18n="level">LEVEL</span>
@@ -210,6 +198,6 @@
   </div>
 </div>
 
-<script src="js/game.js?v=15"></script>
+<script src="js/game.js?v=16"></script>
 </body>
 </html>

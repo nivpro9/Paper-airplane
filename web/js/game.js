@@ -2208,99 +2208,11 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
-function _hidePauseBtn() {
-  document.getElementById('pause-btn').classList.add('hidden');
-  document.getElementById('pause-overlay').classList.add('hidden');
-}
-function _showPauseBtn() {
-  document.getElementById('pause-btn').classList.remove('hidden');
-}
-
-// ── PAUSE ─────────────────────────────────────────────────
-function pauseGame() {
-  if (gameState !== 'playing') return;
-  gameState = 'paused';
-  isHolding = false;
-  if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
-  Snd.stopMusic();
-  _hidePauseBtn();
-  document.getElementById('pause-overlay').classList.remove('hidden');
-}
-
-function resumeGame() {
-  if (gameState !== 'paused') return;
-  document.getElementById('pause-overlay').classList.add('hidden');
-  _startCountdown();
-}
-
-function goMenuFromPause() {
-  document.getElementById('pause-overlay').classList.add('hidden');
-  showMenu();
-}
-
-function _startCountdown() {
-  gameState = 'countdown';
-  let cdStart = null;
-  const TOTAL_MS = 3000;
-
-  function cdFrame(ts) {
-    if (!cdStart) cdStart = ts;
-    const elapsed = ts - cdStart;
-    const secLeft = Math.ceil((TOTAL_MS - elapsed) / 1000); // 3, 2, 1
-
-    // Redraw frozen game state (no update)
-    try { draw(ts / 1000); } catch(_) {}
-
-    // Semi-transparent overlay
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(0, 0, W, H);
-
-    // Pulsing number — each second starts large and shrinks
-    const fracInSec = (elapsed % 1000) / 1000; // 0→1 within each second
-    const scale = 1.35 - fracInSec * 0.35;     // 1.35 → 1.0
-    const label = secLeft > 0 ? String(secLeft) : 'GO!';
-    const color = secLeft > 0 ? '#FFD700' : '#4CAF50';
-    const fontSize = Math.round(110 * scale);
-
-    ctx.save();
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `bold ${fontSize}px Arial`;
-    ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 10;
-    ctx.strokeText(label, W / 2, H / 2);
-    ctx.fillStyle = color;
-    ctx.fillText(label, W / 2, H / 2);
-    // Small subtitle
-    ctx.font = 'bold 15px Arial'; ctx.lineWidth = 4;
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-    if (secLeft > 0) {
-      ctx.strokeText('GET READY...', W / 2, H / 2 + 72);
-      ctx.fillText('GET READY...', W / 2, H / 2 + 72);
-    }
-    ctx.restore();
-
-    if (elapsed < TOTAL_MS + 550) { // extra 550 ms to show "GO!"
-      frameId = requestAnimationFrame(cdFrame);
-    } else {
-      // Countdown done — resume gameplay
-      gameState = 'playing';
-      _showPauseBtn();
-      Snd.startMusic();
-      lastTime = null;
-      frameId = requestAnimationFrame(loop);
-    }
-  }
-
-  lastTime = null;
-  frameId = requestAnimationFrame(cdFrame);
-}
-
 function showMenu() {
   gameState = 'menu';
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
   Snd.stopMusic();
   document.getElementById('shoot-btn').classList.add('hidden');
-  _hidePauseBtn();
   document.getElementById('menu-coins').textContent = Save.data.coins;
   document.getElementById('menu-level').textContent = t('lvl') + ' ' + Save.data.currentLevel;
   showScreen('screen-menu');
@@ -2329,7 +2241,6 @@ function beginLevel(lvlNum) {
   canvas.height = h > 10 ? h : window.innerHeight;
   W = canvas.width; H = canvas.height;
   initGame(lvlNum);
-  _showPauseBtn();
   Snd.startMusic();
   lastTime = null;
   frameId = requestAnimationFrame(loop);
@@ -2339,7 +2250,6 @@ function showGameOver() {
   gameState = 'dead';
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
   document.getElementById('shoot-btn').classList.add('hidden');
-  _hidePauseBtn();
   Save.data.coins += sessionCoins;
   Save.save();
   document.getElementById('go-level').textContent = currentLevel;
@@ -2352,7 +2262,6 @@ function showLevelComplete() {
   gameState = 'levelcomplete';
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
   document.getElementById('shoot-btn').classList.add('hidden');
-  _hidePauseBtn();
   Snd.play('levelcomplete');
 
   // Level completion bonus — scales with level (feels rewarding to advance)

@@ -220,33 +220,6 @@ body {
 }
 .shoot-btn:active { opacity: 0.7; }
 
-/* ── PAUSE BUTTON ── */
-.pause-btn {
-  position: absolute; top: 14px; right: 14px;
-  width: 40px; height: 40px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.25);
-  background: rgba(0,0,0,0.45); color: white; font-size: 16px;
-  cursor: pointer; z-index: 15;
-  display: flex; align-items: center; justify-content: center;
-  touch-action: none; user-select: none; backdrop-filter: blur(4px);
-}
-.pause-btn:active { opacity: 0.6; }
-
-/* ── PAUSE OVERLAY ── */
-.pause-overlay {
-  position: absolute; inset: 0; z-index: 20;
-  background: rgba(0,0,0,0.70);
-  display: flex; align-items: center; justify-content: center;
-}
-.pause-box {
-  display: flex; flex-direction: column; align-items: center; gap: 18px;
-  background: linear-gradient(160deg, #1a1a3e, #16213e);
-  border: 1px solid rgba(255,255,255,0.15); border-radius: 28px;
-  padding: 38px 32px; max-width: 300px; width: 88%;
-  box-shadow: 0 12px 48px rgba(0,0,0,0.7);
-}
-.pause-icon { font-size: 52px; line-height: 1; }
-.pause-title { color: white; font-size: 26px; letter-spacing: 5px; }
 
 /* ── GAME OVER ── */
 #screen-gameover { background: linear-gradient(180deg,#1a1a3e 0%,#16213e 100%); }
