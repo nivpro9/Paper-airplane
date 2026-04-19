@@ -524,6 +524,7 @@ const Save = {
     lastLogin: 0, loginStreak: 0,
     gameCount: 0,
     diamonds: 0,
+    freePlayBest: 0,
   },
   data: null,
   fresh() { return JSON.parse(JSON.stringify(this.defaults)); },
@@ -586,6 +587,7 @@ const Save = {
     if (this.data.loginStreak === undefined) this.data.loginStreak = 0;
     if (this.data.gameCount === undefined) this.data.gameCount = 0;
     if (this.data.diamonds === undefined) this.data.diamonds = 0;
+    if (this.data.freePlayBest === undefined) this.data.freePlayBest = 0;
     // Re-save to populate all storage mechanisms in case one was missing
     this.save();
   },
@@ -612,6 +614,9 @@ let biomeBanner = { text: '', timer: 0 };
 
 // Session ID — incremented on every new game to cancel stale delayed callbacks
 let gameSession = 0;
+
+// ── FREE PLAY MODE ───────────────────────────────────────
+let isFreePlay = false;
 
 // ── REVIVE STATE ─────────────────────────────────────────
 let reviveCount = 0;       // resets each level start
@@ -1486,8 +1491,28 @@ function update(dt) {
   // ── HUD UPDATE ──
   updateHUD();
 
-  // ── GOAL REACHED: boss level → spawn boss, normal → spawn runway ──
-  if (!landing && !boss && distance >= levelData.goal) {
+  // ── FREE PLAY: scale difficulty and biome dynamically by distance ──
+  if (isFreePlay) {
+    const fp_t = Math.min(1, distance / 5000);
+    levelData.speed        = (3 + fp_t * 6) * 0.88;
+    levelData.gapFraction  = (0.42 - fp_t * 0.15) * 1.12;
+    levelData.spawnInterval= Math.max(0.65, (2.0 - fp_t * 1.35) * 1.12);
+    levelData.fanChance    = fp_t * 0.20;
+    const newBiome = Math.min(6, Math.floor(distance / 700));
+    if (newBiome !== currentBiome) {
+      currentBiome = newBiome;
+      initBgEffects(currentBiome);
+      biomeBanner.text  = tf('enteringZone', t('bm' + currentBiome).toUpperCase());
+      biomeBanner.timer = 2.5;
+      biomeBanner.color = null;
+    }
+    // Update enemies/shield pickups after distance threshold
+    enemyTimer      = distance >= 500 && enemies.length === 0 ? Math.min(enemyTimer, 8) : enemyTimer;
+    shieldPickupTimer = distance >= 300 ? Math.min(shieldPickupTimer, 18) : shieldPickupTimer;
+  }
+
+  // ── GOAL REACHED: boss level → spawn boss, normal → spawn runway (levels mode only) ──
+  if (!isFreePlay && !landing && !boss && distance >= levelData.goal) {
     spawnTimer = 999; // stop obstacles
     if (BOSS_LEVELS.has(currentLevel)) {
       // Spawn the boss
@@ -1528,8 +1553,14 @@ function handleHit() {
 function updateHUD() {
   const distM = Math.floor(distance);
   document.getElementById('hud-distance').textContent = distM + 'm';
-  document.getElementById('hud-goal').textContent = '/ ' + levelData.goal + 'm';
-  document.getElementById('hud-level').textContent = currentLevel;
+  if (isFreePlay) {
+    const best = Save.data.freePlayBest || 0;
+    document.getElementById('hud-goal').textContent = best > 0 ? '🏆 ' + best + 'm' : '';
+    document.getElementById('hud-level').textContent = '∞';
+  } else {
+    document.getElementById('hud-goal').textContent = '/ ' + levelData.goal + 'm';
+    document.getElementById('hud-level').textContent = currentLevel;
+  }
   document.getElementById('hud-coins').textContent = Save.data.coins + sessionCoins;
 
   // Ammo display
@@ -2507,7 +2538,7 @@ function draw(elapsed) {
   }
 
   // Progress bar at very top
-  if (levelData) {
+  if (levelData && !isFreePlay) {
     const pct = Math.min(1, distance / levelData.goal);
     ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(0, 0, W, 4);
     const barGrd = ctx.createLinearGradient(0,0,W,0);
@@ -2553,6 +2584,8 @@ function showMenu() {
   document.getElementById('menu-coins').textContent = Save.data.coins;
   document.getElementById('menu-diamonds').textContent = Save.data.diamonds || 0;
   document.getElementById('menu-level').textContent = t('lvl') + ' ' + Save.data.currentLevel;
+  const fpBest = Save.data.freePlayBest || 0;
+  document.getElementById('fp-best-badge').textContent = fpBest > 0 ? '🏆 ' + fpBest + 'm' : '';
   showScreen('screen-menu');
   drawMenuVehicle();
   updateSpinButton();
@@ -2568,6 +2601,7 @@ function startGame() {
 }
 
 function beginLevel(lvlNum) {
+  isFreePlay = false;
   gameSession++; // invalidate any pending showGameOver / showLevelComplete callbacks
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
   gameState = 'playing';
@@ -2580,6 +2614,28 @@ function beginLevel(lvlNum) {
   W = canvas.width; H = canvas.height;
   initGame(lvlNum);
   updateShootBtn(); // show/hide cannon button immediately based on level + upgrade
+  Snd.startMusic();
+  lastTime = null;
+  frameId = requestAnimationFrame(loop);
+}
+
+function beginFreePlay() {
+  isFreePlay = true;
+  gameSession++;
+  if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
+  gameState = 'playing';
+  showScreen('screen-game');
+  const w = canvas.offsetWidth  || window.innerWidth;
+  const h = canvas.offsetHeight || window.innerHeight;
+  canvas.width  = w > 10 ? w : window.innerWidth;
+  canvas.height = h > 10 ? h : window.innerHeight;
+  W = canvas.width; H = canvas.height;
+  // Init with level 1 params — difficulty scales dynamically with distance
+  initGame(1);
+  // Override: no goal, no boss in free play
+  levelData = Object.assign({}, LEVELS[0], { goal: Infinity });
+  updateHUD();
+  updateShootBtn();
   Snd.startMusic();
   lastTime = null;
   frameId = requestAnimationFrame(loop);
@@ -2683,10 +2739,28 @@ function showGameOver() {
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
   document.getElementById('shoot-btn').classList.add('hidden');
   Save.data.coins += sessionCoins;
+
+  // Free play best distance tracking
+  const distM = Math.floor(distance);
+  let fpNewBest = false;
+  if (isFreePlay) {
+    if (distM > (Save.data.freePlayBest || 0)) {
+      Save.data.freePlayBest = distM;
+      fpNewBest = true;
+    }
+  }
   Save.save();
-  document.getElementById('go-level').textContent = currentLevel;
-  document.getElementById('go-distance').textContent = Math.floor(distance) + 'm / ' + levelData.goal + 'm';
+
+  // Populate stats
+  document.getElementById('go-level').textContent = isFreePlay ? '∞' : currentLevel;
+  if (isFreePlay) {
+    const best = Save.data.freePlayBest;
+    document.getElementById('go-distance').textContent = distM + 'm' + (fpNewBest ? ' 🏆 NEW BEST!' : ' / 🏆 ' + best + 'm');
+  } else {
+    document.getElementById('go-distance').textContent = distM + 'm / ' + levelData.goal + 'm';
+  }
   document.getElementById('go-coins').textContent = '+' + sessionCoins;
+
   // Switch to phase 2 on the same revive screen (no extra screen transition)
   document.getElementById('revive-phase-continue').classList.add('hidden');
   document.getElementById('revive-phase-gameover').classList.remove('hidden');
@@ -2722,13 +2796,7 @@ function showLevelComplete() {
   }
   if (currentLevel > Save.data.bestLevel) Save.data.bestLevel = currentLevel;
 
-  // Personal best per level
   const distM = Math.floor(distance);
-  if (!Save.data.levelBests) Save.data.levelBests = {};
-  const prevBest = Save.data.levelBests[currentLevel] || 0;
-  const isNewPB = distM > prevBest;
-  if (isNewPB) Save.data.levelBests[currentLevel] = distM;
-
   Save.save();
 
   document.getElementById('lc-level').textContent = currentLevel;
@@ -2739,12 +2807,10 @@ function showLevelComplete() {
   if (earnedDiamond) { diamondRow.classList.remove('hidden'); }
   else { diamondRow.classList.add('hidden'); }
 
-  // Bravo line — show PB or prestige or well done
+  // Bravo line
   const bravoEl = document.getElementById('lc-bravo');
   if (isLast) {
     bravoEl.textContent = tf('prestigeText', Save.data.prestige);
-  } else if (isNewPB) {
-    bravoEl.textContent = t('newBest') + ': ' + distM + 'm!';
   } else {
     bravoEl.textContent = t('wellDone');
   }
@@ -2808,16 +2874,15 @@ function renderLevelSelect() {
       const isBoss  = BOSS_LEVELS.has(lv.id);
       const bossClass = isBoss ? ' boss-level' : '';
       const bossCrown = isBoss ? '<span class="lv-boss-crown">⚔️</span>' : '';
-      const pb = Save.data.levelBests && Save.data.levelBests[lv.id];
-      const pbStr = pb ? ` title="Level ${lv.id} — Best: ${pb}m"` : ` title="Level ${lv.id}"`;
+      const titleStr = ` title="Level ${lv.id}"`;
 
       if (locked) {
-        return `<div class="lv-bubble locked${bossClass}"${pbStr}>${bossCrown}<span class="lv-lock-icon">🔒</span><span class="lv-lock-num">${lv.id}</span></div>`;
+        return `<div class="lv-bubble locked${bossClass}"${titleStr}>${bossCrown}<span class="lv-lock-icon">🔒</span><span class="lv-lock-num">${lv.id}</span></div>`;
       } else if (done) {
-        return `<div class="lv-bubble done${bossClass}"${pbStr} onclick="startLevelFromSelect(${lv.id})">${bossCrown}✓${pb ? '<span class="lv-pb">'+pb+'m</span>' : ''}</div>`;
+        return `<div class="lv-bubble done${bossClass}"${titleStr} onclick="startLevelFromSelect(${lv.id})">${bossCrown}✓</div>`;
       } else {
         // active (current level)
-        return `<div class="lv-bubble current${bossClass}"${pbStr} onclick="startLevelFromSelect(${lv.id})">${bossCrown}${lv.id}</div>`;
+        return `<div class="lv-bubble current${bossClass}"${titleStr} onclick="startLevelFromSelect(${lv.id})">${bossCrown}${lv.id}</div>`;
       }
     }).join('');
 
@@ -3515,10 +3580,11 @@ window.addEventListener('load', () => {
   setupTouch();
 
   document.getElementById('playBtn').addEventListener('click', startGame);
+  document.getElementById('freePlayBtn').addEventListener('click', beginFreePlay);
   document.getElementById('levelsBtn').addEventListener('click', showLevelSelect);
   document.getElementById('levelsBackBtn').addEventListener('click', showMenu);
   document.getElementById('shopBtn').addEventListener('click', showShop);
-  document.getElementById('retryBtn').addEventListener('click', () => beginLevel(currentLevel));
+  document.getElementById('retryBtn').addEventListener('click', () => isFreePlay ? beginFreePlay() : beginLevel(currentLevel));
   document.getElementById('goShopBtn').addEventListener('click', showShop);
   document.getElementById('goMenuBtn').addEventListener('click', showMenu);
   document.getElementById('shopBackBtn').addEventListener('click', showMenu);
