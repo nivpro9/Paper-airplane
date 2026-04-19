@@ -74,7 +74,7 @@ const UPGRADES = [
   { id:'control', name:'Better Control', icon:'🎯', desc:'Smoother joystick response',      maxLevel:5, costs:[60,120,220,400,750]  },
   { id:'magnet',  name:'Coin Magnet',    icon:'🧲', desc:'Attract nearby coins',            maxLevel:4, costs:[100,200,400,800]     },
   { id:'shield',  name:'Shield',         icon:'🛡', desc:'Extra hit before crashing',       maxLevel:3, costs:[400,800,1500]        },
-  { id:'cannon',  name:'Cannon',         icon:'🔫', desc:'Unlocks ammo pickups & shooting', maxLevel:3, costs:[150,300,600]         },
+  { id:'cannon',  name:'Cannon',         icon:'🔫', desc:'Unlocks ammo pickups & shooting', maxLevel:3, costs:[150,300,600], levelReq:3 },
 ];
 
 // ── LANGUAGES ────────────────────────────────────────────
@@ -1034,13 +1034,16 @@ function shoot() {
   ammo--;
   const cooldowns = [0, 0.9, 0.55, 0.4];
   shootCooldown = cooldowns[lvl];
-  const bulletVx = speed + 350;
+  const bulletVx = speed + 380;
   if (lvl >= 3) {
-    bullets.push({ x: player.x + 26, y: player.y - 5, vx: bulletVx, vy: -40, r: 6 });
-    bullets.push({ x: player.x + 26, y: player.y + 5, vx: bulletVx, vy:  40, r: 6 });
+    // Level 3: double-barrel spread
+    bullets.push({ x: player.x + 26, y: player.y - 5, vx: bulletVx, vy: -30, r: 6 });
+    bullets.push({ x: player.x + 26, y: player.y + 5, vx: bulletVx, vy:  30, r: 6 });
   } else {
+    // Level 1-2: single straight shot
     bullets.push({ x: player.x + 26, y: player.y, vx: bulletVx, vy: 0, r: 6 });
   }
+  Snd.play('shoot');
   spawnParticles(player.x + 20, player.y, '#ff9800', 14);
   for (let i = 0; i < 8; i++) {
     const a = (Math.random() - 0.5) * Math.PI * 0.5;
@@ -1052,14 +1055,16 @@ function shoot() {
 function updateShootBtn() {
   const btn = document.getElementById('shoot-btn');
   if (!btn) return;
-  // Show shoot button only when cannon is unlocked and ammo is available
-  const hasCannon = Save.data.upgrades.cannon > 0;
-  if (hasCannon && ammo > 0 && gameState === 'playing') {
-    btn.classList.remove('hidden');
-    btn.textContent = '🔫 ' + ammo;
-  } else {
+  const hasCannon = Save.data.upgrades.cannon > 0 && currentLevel >= 3;
+  if (!hasCannon || gameState !== 'playing') {
     btn.classList.add('hidden');
+    return;
   }
+  // Always visible when cannon is unlocked — dimmed when empty or cooling down
+  btn.classList.remove('hidden');
+  btn.textContent = '🔫 ' + ammo;
+  btn.style.opacity  = (ammo > 0 && shootCooldown <= 0) ? '1' : '0.35';
+  btn.style.transform = (ammo > 0 && shootCooldown <= 0) ? 'scale(1)' : 'scale(0.92)';
 }
 
 
@@ -1259,6 +1264,7 @@ function update(dt) {
   // ── BULLETS ──
   const nextBullets = [];
   for (const b of bullets) {
+    b.vy += 90 * dt;            // slight gravity — makes bullets arc realistically
     b.x += b.vx * dt; b.y += b.vy * dt;
     let hit = false;
     for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -2572,6 +2578,7 @@ function beginLevel(lvlNum) {
   canvas.height = h > 10 ? h : window.innerHeight;
   W = canvas.width; H = canvas.height;
   initGame(lvlNum);
+  updateShootBtn(); // show/hide cannon button immediately based on level + upgrade
   Snd.startMusic();
   lastTime = null;
   frameId = requestAnimationFrame(loop);
@@ -2771,10 +2778,22 @@ function renderShop() {
   document.getElementById('upgrades-list').innerHTML = UPGRADES.map(upg => {
     const level = Save.data.upgrades[upg.id];
     const maxed = level >= upg.maxLevel;
-    const cost = maxed ? 0 : upg.costs[level];
-    const pct = (level / upg.maxLevel) * 100;
-    const descExtra = upg.id === 'speed' && level > 0 ? ` — +${level*12}%` :
+    const cost  = maxed ? 0 : upg.costs[level];
+    const pct   = (level / upg.maxLevel) * 100;
+    const lvlLocked = upg.levelReq && Save.data.currentLevel < upg.levelReq;
+    const descExtra = upg.id === 'speed'   && level > 0 ? ` — +${level*12}%` :
                       upg.id === 'control' && level > 0 ? ` — +${level*15}%` : '';
+    if (lvlLocked) {
+      return `<div class="upgrade-row" style="opacity:0.45;pointer-events:none">
+        <div class="up-icon">🔒</div>
+        <div class="up-info">
+          <div class="up-name">${upg.icon} ${upg.name} <span style="color:rgba(255,255,255,0.4);font-size:12px">Lv 0/${upg.maxLevel}</span></div>
+          <div class="up-desc">Reach Level ${upg.levelReq} to unlock</div>
+          <div class="up-bar"><div class="up-bar-fill" style="width:0%"></div></div>
+        </div>
+        <div class="up-cost" style="color:#888">LVL ${upg.levelReq}</div>
+      </div>`;
+    }
     return `<div class="upgrade-row" onclick="buyUpgrade('${upg.id}')">
       <div class="up-icon">${upg.icon}</div>
       <div class="up-info">
@@ -2805,6 +2824,8 @@ function selectVehicle(id) {
 }
 function buyUpgrade(id) {
   const upg = UPGRADES.find(u => u.id === id);
+  if (!upg) return;
+  if (upg.levelReq && Save.data.currentLevel < upg.levelReq) return; // level-locked
   const level = Save.data.upgrades[id];
   if (level >= upg.maxLevel) return;
   const cost = upg.costs[level];
@@ -2823,18 +2844,15 @@ function setupTouch() {
     if (gameState === 'playing' || gameState === 'landing' || gameState === 'countdown') e.preventDefault();
   }, { passive: false });
 
-  // Hold anywhere on screen = fly up; double-tap = shoot (level 5+)
+  // Hold anywhere on screen = fly up; double-tap anywhere also shoots
   let lastTapTime = 0;
   gc.addEventListener('touchstart', e => {
     e.preventDefault();
     isHolding = true;
+    // Double-tap on the game area as secondary fire trigger
     const now = Date.now();
-    if (now - lastTapTime < 280) {
-      shoot();
-      lastTapTime = 0;
-    } else {
-      lastTapTime = now;
-    }
+    if (now - lastTapTime < 280) { shoot(); lastTapTime = 0; }
+    else lastTapTime = now;
   }, { passive: false });
   gc.addEventListener('touchend',    () => { isHolding = false; });
   gc.addEventListener('touchcancel', () => { isHolding = false; });
@@ -2845,8 +2863,21 @@ function setupTouch() {
   gc.addEventListener('mouseleave', () => { isHolding = false; });
   gc.addEventListener('dblclick',   () => { shoot(); });
 
-  // Shoot button hidden (double-tap used instead)
-  document.getElementById('shoot-btn').classList.add('hidden');
+  // ── SHOOT BUTTON — dedicated tap target on mobile ────────
+  const shootBtn = document.getElementById('shoot-btn');
+  // Touch: fire on touchstart so there's no delay, block propagation so the
+  // underlying canvas touchstart doesn't toggle isHolding or count as a double-tap
+  shootBtn.addEventListener('touchstart', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    shoot();
+  }, { passive: false });
+  shootBtn.addEventListener('touchend', e => {
+    e.stopPropagation();
+    e.preventDefault();
+  }, { passive: false });
+  // Click covers desktop testing
+  shootBtn.addEventListener('click', e => { e.stopPropagation(); shoot(); });
 }
 
 // ── AUDIO ─────────────────────────────────────────────────
@@ -2875,7 +2906,27 @@ const Snd = (() => {
     try {
       const ac = getCtx();
       if (ac.state === 'suspended') ac.resume();
-      if (type === 'coin') {
+      if (type === 'shoot') {
+        // Cannon "pew" — sharp descending sawtooth + noise kick
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(520, ac.currentTime);
+        o.frequency.exponentialRampToValueAtTime(90, ac.currentTime + 0.09);
+        o.connect(g); g.connect(ac.destination);
+        g.gain.setValueAtTime(0.28, ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.12);
+        free(o, g); o.start(); o.stop(ac.currentTime + 0.13);
+        // Short noise burst for impact body
+        const nLen = (ac.sampleRate * 0.06) | 0;
+        const nBuf = ac.createBuffer(1, nLen, ac.sampleRate);
+        const nd = nBuf.getChannelData(0);
+        for (let i = 0; i < nLen; i++) nd[i] = (Math.random() * 2 - 1) * (1 - i / nLen) * 0.6;
+        const ns = ac.createBufferSource(), ng = ac.createGain();
+        ns.buffer = nBuf; ns.connect(ng); ng.connect(ac.destination);
+        ng.gain.setValueAtTime(0.22, ac.currentTime);
+        ng.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.07);
+        free(ns, ng); ns.start(); ns.stop(ac.currentTime + 0.08);
+      } else if (type === 'coin') {
         // quick ascending ding — only play 1 oscillator (not 3) to reduce node count
         const o = ac.createOscillator(), g = ac.createGain();
         o.connect(g); g.connect(ac.destination);
