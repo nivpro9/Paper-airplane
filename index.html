@@ -198,6 +198,12 @@
     </div>
     <div id="lc-diamond-row" class="hidden" style="color:#00eaff;font-size:20px;margin:6px 0;font-weight:bold">💎 +1 DIAMOND!</div>
     <div id="lc-biome" class="lc-biome hidden"></div>
+    <!-- Ammo shop row (only visible when cannon is unlocked) -->
+    <div id="lc-ammo-shop" class="lc-ammo-shop hidden">
+      <span class="lc-ammo-label">🔫 Buy ammo</span>
+      <button class="lc-ammo-btn" onclick="lcBuyAmmo()">+1 — 50 🪙</button>
+      <span id="lc-ammo-count" class="lc-ammo-count">0</span>
+    </div>
     <button id="nextLevelBtn" class="btn-play">NEXT LEVEL ›</button>
     <button id="lcShopBtn" class="btn-shop" data-i18n="upgradesBtn">🔧 UPGRADES</button>
     <button id="lcMenuBtn" class="btn-menu" data-i18n="menu">MENU</button>
@@ -237,7 +243,7 @@
   </div>
 </div>
 
-<script src="js/game.js?v=31"></script>
+<script src="js/game.js?v=32"></script>
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});

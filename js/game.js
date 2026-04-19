@@ -1362,6 +1362,25 @@ function update(dt) {
           tutHints.push({ text: 'Collect ammo boxes for your cannon!', x: W * 0.5, y: H * 0.35, alpha: 1, timer: 4 });
         }
       }
+      // Bullets can destroy pillars — check if any bullet hits the pillar body
+      let pillarDestroyed = false;
+      bullets = bullets.filter(b => {
+        if (b.x > obs.x - obs.w / 2 - 6 && b.x < obs.x + obs.w / 2 + 6) {
+          // Hit top wall?
+          if (b.y < obs.gapY - obs.gap / 2) { pillarDestroyed = true; return false; }
+          // Hit bottom wall?
+          if (b.y > obs.gapY + obs.gap / 2) { pillarDestroyed = true; return false; }
+        }
+        return true;
+      });
+      if (pillarDestroyed) {
+        spawnParticles(obs.x, obs.gapY - obs.gap / 2, '#8D6E63', 10);
+        spawnParticles(obs.x, obs.gapY + obs.gap / 2, '#8D6E63', 10);
+        screenShake = 0.25;
+        Snd.play('crash');
+        popups.push({ text: '💥 BLASTED!', x: obs.x, y: obs.gapY, alpha: 1, timer: 1.0, color: '#FF9800' });
+        return false; // remove pillar
+      }
       if (player.invincible <= 0) {
         const hw = player.w * 0.38, hh = player.h * 0.38;
         if (player.x + hw > obs.x - obs.w / 2 && player.x - hw < obs.x + obs.w / 2)
@@ -1382,6 +1401,18 @@ function update(dt) {
       return obs.x > -60;
     } else if (obs.type === 'bird') {
       obs.x += obs.vx;
+      let birdShot = false;
+      bullets = bullets.filter(b => {
+        const dx = b.x - obs.x, dy = b.y - obs.y;
+        if (Math.sqrt(dx*dx+dy*dy) < obs.r + 10) { birdShot = true; return false; }
+        return true;
+      });
+      if (birdShot) {
+        spawnParticles(obs.x, obs.y, '#FFD700', 10);
+        sessionCoins += 2;
+        popups.push({ text: '+2 🪙', x: obs.x, y: obs.y - 20, alpha: 1, timer: 1.0, color: '#FFD700' });
+        return false;
+      }
       if (player.invincible <= 0) {
         const dx = player.x - obs.x, dy = player.y - obs.y;
         if (Math.sqrt(dx * dx + dy * dy) < obs.r + 20) handleHit();
@@ -2978,7 +3009,39 @@ function showLevelComplete() {
     bioLabel.classList.add('hidden');
   }
 
+  // Ammo shop row — show only when cannon is unlocked
+  const ammoShopRow = document.getElementById('lc-ammo-shop');
+  if (maxAmmo() > 0) {
+    ammoShopRow.classList.remove('hidden');
+    document.getElementById('lc-ammo-count').textContent = ammo;
+  } else {
+    ammoShopRow.classList.add('hidden');
+  }
+
   showScreen('screen-levelcomplete');
+}
+
+function lcBuyAmmo() {
+  const AMMO_COST = 50;
+  const cap = maxAmmo();
+  if (cap <= 0) return; // no cannon
+  if (ammo >= cap) {
+    popups.push({ text: 'AMMO FULL!', x: W * 0.5, y: H * 0.5, alpha: 1, timer: 1.2, color: '#FF6B35' });
+    return;
+  }
+  const totalCoins = Save.data.coins; // sessionCoins already saved at level complete
+  if (totalCoins < AMMO_COST) {
+    // Flash the cost button red briefly
+    const btn = document.querySelector('.lc-ammo-btn');
+    if (btn) { btn.style.background = '#c62828'; setTimeout(() => { btn.style.background = ''; }, 400); }
+    return;
+  }
+  Save.data.coins -= AMMO_COST;
+  ammo = Math.min(ammo + 1, cap);
+  Save.save();
+  document.getElementById('lc-ammo-count').textContent = ammo;
+  // Refresh coin display
+  document.getElementById('lc-coins').textContent = '+' + sessionCoins + ' (incl. +' + (currentLevel * 5) + ' bonus)';
 }
 
 function showShop() {
