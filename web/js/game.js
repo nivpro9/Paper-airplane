@@ -2189,13 +2189,15 @@ function hexToRgb(hex) {
 function loop(ts) {
   const dt = Math.min((ts - (lastTime || ts)) / 1000, 0.05);
   lastTime = ts;
+  let loopOk = true;
   try {
     update(dt);
     draw(ts / 1000);
   } catch (e) {
     console.error('[loop error]', e);
+    loopOk = false; // stop loop on unhandled error — prevents runaway broken state
   }
-  if (player && (player.alive || landing || boss || particles.length > 0)) {
+  if (loopOk && player && (player.alive || landing || boss || particles.length > 0)) {
     frameId = requestAnimationFrame(loop);
   }
 }
@@ -2517,7 +2519,6 @@ function setupTouch() {
 // ── AUDIO ─────────────────────────────────────────────────
 const Snd = (() => {
   let ctx = null;
-  let musicNode = null;
   let musicGain = null;
   let musicPlaying = false;
 
@@ -2526,31 +2527,37 @@ const Snd = (() => {
     return ctx;
   }
 
+  // Auto-disconnect nodes after they finish — prevents iOS Safari WebAudio node leak crash
+  function free(node, ...extras) {
+    try {
+      node.addEventListener('ended', () => {
+        try { node.disconnect(); } catch(_) {}
+        extras.forEach(n => { try { n.disconnect(); } catch(_) {} });
+      });
+    } catch(_) {}
+  }
+
   function play(type) {
     try {
       const ac = getCtx();
       if (ac.state === 'suspended') ac.resume();
       if (type === 'coin') {
-        // quick ascending ding
-        [660, 880, 1100].forEach((freq, i) => {
-          const o = ac.createOscillator(), g = ac.createGain();
-          o.connect(g); g.connect(ac.destination);
-          o.frequency.value = freq;
-          o.type = 'sine';
-          const t = ac.currentTime + i * 0.06;
-          g.gain.setValueAtTime(0.18, t);
-          g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-          o.start(t); o.stop(t + 0.13);
-        });
+        // quick ascending ding — only play 1 oscillator (not 3) to reduce node count
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.connect(g); g.connect(ac.destination);
+        o.frequency.value = 880; o.type = 'sine';
+        g.gain.setValueAtTime(0.18, ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.12);
+        free(o, g); o.start(); o.stop(ac.currentTime + 0.13);
       } else if (type === 'land') {
-        // thud + success chime
+        // thud
         const o = ac.createOscillator(), g = ac.createGain();
         o.connect(g); g.connect(ac.destination);
         o.type = 'sine'; o.frequency.setValueAtTime(220, ac.currentTime);
         o.frequency.exponentialRampToValueAtTime(80, ac.currentTime + 0.3);
         g.gain.setValueAtTime(0.5, ac.currentTime);
         g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.35);
-        o.start(); o.stop(ac.currentTime + 0.36);
+        free(o, g); o.start(); o.stop(ac.currentTime + 0.36);
         // chime
         [523, 659, 784, 1047].forEach((freq, i) => {
           const o2 = ac.createOscillator(), g2 = ac.createGain();
@@ -2559,7 +2566,7 @@ const Snd = (() => {
           const t = ac.currentTime + 0.2 + i * 0.1;
           g2.gain.setValueAtTime(0.15, t);
           g2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-          o2.start(t); o2.stop(t + 0.26);
+          free(o2, g2); o2.start(t); o2.stop(t + 0.26);
         });
       } else if (type === 'landing_start') {
         // whoosh
@@ -2574,16 +2581,16 @@ const Snd = (() => {
         src.connect(filt); filt.connect(g); g.connect(ac.destination);
         g.gain.setValueAtTime(0.3, ac.currentTime);
         g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.4);
-        src.start(); src.stop(ac.currentTime + 0.41);
+        free(src, filt, g); src.start(); src.stop(ac.currentTime + 0.41);
       } else if (type === 'crash') {
-        // explosion thud + noise burst
+        // explosion thud
         const o = ac.createOscillator(), g = ac.createGain();
         o.type = 'sawtooth'; o.frequency.setValueAtTime(180, ac.currentTime);
         o.frequency.exponentialRampToValueAtTime(40, ac.currentTime + 0.5);
         o.connect(g); g.connect(ac.destination);
         g.gain.setValueAtTime(0.6, ac.currentTime);
         g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.5);
-        o.start(); o.stop(ac.currentTime + 0.51);
+        free(o, g); o.start(); o.stop(ac.currentTime + 0.51);
         // noise burst
         const nLen = ac.sampleRate * 0.35;
         const nBuf = ac.createBuffer(1, nLen, ac.sampleRate);
@@ -2593,7 +2600,7 @@ const Snd = (() => {
         ns.buffer = nBuf; ns.connect(ng); ng.connect(ac.destination);
         ng.gain.setValueAtTime(0.5, ac.currentTime);
         ng.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.35);
-        ns.start(); ns.stop(ac.currentTime + 0.36);
+        free(ns, ng); ns.start(); ns.stop(ac.currentTime + 0.36);
       } else if (type === 'shield') {
         // metallic clang
         [320, 640, 1280].forEach((freq, i) => {
@@ -2603,7 +2610,7 @@ const Snd = (() => {
           const t = ac.currentTime + i * 0.02;
           g.gain.setValueAtTime(0.2, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-          o.start(t); o.stop(t + 0.31);
+          free(o, g); o.start(t); o.stop(t + 0.31);
         });
       } else if (type === 'mystery') {
         // magical sparkle arpeggio
@@ -2614,26 +2621,24 @@ const Snd = (() => {
           const t = ac.currentTime + i * 0.07;
           g.gain.setValueAtTime(0.18, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-          o.start(t); o.stop(t + 0.26);
+          free(o, g); o.start(t); o.stop(t + 0.26);
         });
       } else if (type === 'levelcomplete') {
-        // Happy fanfare: quick ascending run then triumphant chord
+        // Happy fanfare
         const fanfare = [
           [523, 0.00, 0.10], [659, 0.10, 0.10], [784, 0.20, 0.10],
-          [1047,0.30, 0.18], [0,   0.48, 0.04],
-          [784, 0.52, 0.12], [1047,0.64, 0.12], [1319,0.76, 0.30],
+          [1047,0.30, 0.18], [784, 0.52, 0.12], [1047,0.64, 0.12], [1319,0.76, 0.30],
         ];
         fanfare.forEach(([freq, start, dur]) => {
-          if (!freq) return;
           const o = ac.createOscillator(), g = ac.createGain();
           o.type = 'triangle'; o.frequency.value = freq;
           o.connect(g); g.connect(ac.destination);
           const t = ac.currentTime + start;
           g.gain.setValueAtTime(0.28, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-          o.start(t); o.stop(t + dur + 0.01);
+          free(o, g); o.start(t); o.stop(t + dur + 0.01);
         });
-        // Harmony layer (lower octave, softer)
+        // Harmony layer
         [[392,0.30],[523,0.52],[659,0.76]].forEach(([freq, start]) => {
           const o = ac.createOscillator(), g = ac.createGain();
           o.type = 'sine'; o.frequency.value = freq;
@@ -2641,10 +2646,10 @@ const Snd = (() => {
           const t = ac.currentTime + start;
           g.gain.setValueAtTime(0.12, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-          o.start(t); o.stop(t + 0.36);
+          free(o, g); o.start(t); o.stop(t + 0.36);
         });
       } else if (type === 'buy') {
-        // Happy ascending chime for purchase
+        // Happy ascending chime
         [523, 784, 1047].forEach((freq, i) => {
           const o = ac.createOscillator(), g = ac.createGain();
           o.type = 'sine'; o.frequency.value = freq;
@@ -2652,27 +2657,21 @@ const Snd = (() => {
           const t = ac.currentTime + i * 0.09;
           g.gain.setValueAtTime(0.25, t);
           g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
-          o.start(t); o.stop(t + 0.23);
+          free(o, g); o.start(t); o.stop(t + 0.23);
         });
       }
     } catch(e) {}
   }
 
-  // Simple looping background music using oscillators
-  // Upbeat chiptune — two-voice melody + bass arpeggio
+  // Upbeat chiptune — reduced to ~18 notes/loop (was 34) to limit node creation rate
   const MELODY = [
-    // Phrase A — bright & bouncy
-    [659,0.15],[0,0.05],[784,0.15],[0,0.05],[880,0.2],[0,0.05],
-    [784,0.15],[0,0.05],[740,0.15],[0,0.05],[659,0.25],[0,0.1],
-    [587,0.15],[0,0.05],[659,0.15],[0,0.05],[784,0.3],[0,0.1],
-    // Phrase B — energetic climb
-    [523,0.12],[587,0.12],[659,0.12],[698,0.12],[784,0.25],[0,0.1],
-    [880,0.12],[0,0.05],[784,0.12],[0,0.05],[698,0.12],[0,0.05],[659,0.3],[0,0.1],
-    // Phrase C — fun descend
-    [784,0.2],[659,0.15],[587,0.15],[523,0.2],[0,0.08],
-    [587,0.15],[659,0.15],[784,0.2],[880,0.15],[0,0.05],[988,0.3],[0,0.15],
-    // Turnaround
-    [880,0.12],[784,0.12],[698,0.12],[659,0.12],[587,0.12],[523,0.12],[494,0.25],[0,0.2],
+    [659,0.15],[784,0.15],[880,0.2],[784,0.15],[659,0.25],[0,0.1],
+    [587,0.15],[659,0.15],[784,0.3],[0,0.1],
+    [523,0.12],[659,0.12],[784,0.25],[0,0.1],
+    [880,0.12],[784,0.12],[659,0.3],[0,0.1],
+    [784,0.2],[659,0.15],[523,0.2],[0,0.1],
+    [659,0.15],[784,0.2],[988,0.3],[0,0.2],
+    [880,0.12],[784,0.12],[659,0.12],[523,0.25],[0,0.3],
   ];
 
   function startMusic() {
@@ -2680,15 +2679,15 @@ const Snd = (() => {
     try {
       const ac = getCtx();
       if (ac.state === 'suspended') ac.resume();
+      // Clean up previous gain node if any (prevent accumulation across game sessions)
+      if (musicGain) { try { musicGain.disconnect(); } catch(_) {} musicGain = null; }
       musicGain = ac.createGain();
       musicGain.gain.value = 0.06;
       musicGain.connect(ac.destination);
       musicPlaying = true;
       let t = ac.currentTime + 0.1;
-      const loopLen = MELODY.reduce((s,[,d])=>s+d, 0);
       function scheduleLoop() {
         if (!musicPlaying) return;
-        // Guard: if tab was throttled/hidden, t may have fallen behind current time
         if (t < ac.currentTime) t = ac.currentTime + 0.05;
         MELODY.forEach(([freq, dur]) => {
           if (freq > 0) {
@@ -2697,11 +2696,10 @@ const Snd = (() => {
             o.connect(g); g.connect(musicGain);
             g.gain.setValueAtTime(0.4, t);
             g.gain.exponentialRampToValueAtTime(0.001, t + dur - 0.01);
-            o.start(t); o.stop(t + dur);
+            free(o, g); o.start(t); o.stop(t + dur);
           }
           t += dur;
         });
-        // Schedule next call based on audio clock (not wall clock) to prevent drift
         setTimeout(scheduleLoop, Math.max(100, (t - 0.5 - ac.currentTime) * 1000));
       }
       scheduleLoop();
@@ -2710,7 +2708,10 @@ const Snd = (() => {
 
   function stopMusic() {
     musicPlaying = false;
-    if (musicGain) { musicGain.gain.setValueAtTime(musicGain.gain.value, 0); musicGain = null; }
+    if (musicGain) {
+      try { musicGain.disconnect(); } catch(_) {}
+      musicGain = null;
+    }
   }
 
   return { play, startMusic, stopMusic };
