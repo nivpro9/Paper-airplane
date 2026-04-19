@@ -523,6 +523,7 @@ const Save = {
     lastSpin: 0, spinShields: 0, spinAmmo: 0,
     spinSpeed: 0, spinDoubleCoins: 0,
     lastLogin: 0, loginStreak: 0,
+    diamonds: 0, gameCount: 0,
   },
   data: null,
   fresh() { return JSON.parse(JSON.stringify(this.defaults)); },
@@ -583,6 +584,8 @@ const Save = {
     if (this.data.spinDoubleCoins === undefined) this.data.spinDoubleCoins = 0;
     if (this.data.lastLogin === undefined) this.data.lastLogin = 0;
     if (this.data.loginStreak === undefined) this.data.loginStreak = 0;
+    if (this.data.diamonds === undefined) this.data.diamonds = 0;
+    if (this.data.gameCount === undefined) this.data.gameCount = 0;
     // Re-save to populate all storage mechanisms in case one was missing
     this.save();
   },
@@ -610,6 +613,55 @@ let biomeBanner = { text: '', timer: 0 };
 
 // Session ID — incremented on every new game to cancel stale delayed callbacks
 let gameSession = 0;
+
+// ── REVIVE STATE ─────────────────────────────────────────
+let reviveCount = 0;       // resets each level start
+let reviveTimer = null;    // interval handle for countdown
+
+// ── AD MANAGER ───────────────────────────────────────────
+const AdManager = {
+  _adRevivesThisSession: 0,
+  MAX_AD_REVIVES: 3,
+  showInterstitial(onClose) {
+    // TODO: Replace with AdMob SDK call when publishing
+    const overlay = document.getElementById('ad-interstitial');
+    const skipBtn = document.getElementById('ad-skip-btn');
+    overlay.classList.add('active');
+    skipBtn.textContent = 'Please wait...';
+    skipBtn.disabled = true;
+    let remaining = 3;
+    const tick = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(tick);
+        skipBtn.textContent = 'Close';
+        skipBtn.disabled = false;
+        skipBtn.onclick = () => {
+          overlay.classList.remove('active');
+          skipBtn.onclick = null;
+          if (onClose) onClose();
+        };
+      } else {
+        skipBtn.textContent = 'Please wait... (' + remaining + ')';
+      }
+    }, 1000);
+  },
+  showRewardedAd(onRewarded) {
+    // TODO: Replace with AdMob SDK call when publishing
+    const overlay = document.getElementById('ad-interstitial');
+    const skipBtn = document.getElementById('ad-skip-btn');
+    overlay.classList.add('active');
+    skipBtn.textContent = 'Loading ad...';
+    skipBtn.disabled = true;
+    this._adRevivesThisSession++;
+    setTimeout(() => {
+      overlay.classList.remove('active');
+      if (onRewarded) onRewarded();
+    }, 2000);
+  },
+  canShowRewardedAd() { return this._adRevivesThisSession < this.MAX_AD_REVIVES; },
+  resetSession() { this._adRevivesThisSession = 0; },
+};
 
 // Boss state (null when no boss is active)
 let boss = null;
@@ -671,6 +723,8 @@ const MYSTERY_PRIZES = [
   { id:'invincible',label:'⚡ INVINCIBLE', color:'#E040FB', weight:4 },
   { id:'speedup',  label:'⚡ SPEED!',color:'#00BCD4', weight:7  },
   { id:'vehicle',  label:'FREE PLANE!', color:'#FFD700', weight:1 },
+  { id:'diamonds1', label:'+1 💎', color:'#90CAF9', weight:8 },
+  { id:'diamonds3', label:'+3 💎', color:'#64B5F6', weight:3 },
 ];
 function pickPrize() {
   // Vehicle prize only if player doesn't own all vehicles up to id 6
@@ -725,6 +779,11 @@ function applyPrize(prize) {
       spawnParticles(player.x, player.y, '#FFD700', 24);
       prize = { ...prize, label: gift.emoji + ' FREE ' + gift.name + '!' };
     }
+  } else if (prize.id.startsWith('diamonds')) {
+    const n = parseInt(prize.id.replace('diamonds', ''));
+    Save.data.diamonds = (Save.data.diamonds || 0) + n;
+    Save.save();
+    spawnParticles(player.x, player.y, '#90CAF9', 16);
   }
   Snd.play('mystery');
   popups.push({ text: prize.label, x: player.x, y: player.y - 30, alpha: 1, timer: 2.2, color: prize.color });
@@ -1112,6 +1171,7 @@ function initGame(levelNum) {
   currentBiome = levelData.biome;
 
   boss = null;
+  reviveCount = 0;
   distance = 0; sessionCoins = 0;
   obstacles = []; coins = []; ammoPickups = []; shieldPickups = []; particles = []; bullets = []; mysteryBoxes = [];
   enemies = []; enemyBullets = []; balloons = []; popups = [];
@@ -1586,7 +1646,7 @@ function handleHit() {
   spawnParticles(player.x, player.y, VEHICLES[Save.data.activeVehicle].color, 16);
   Snd.play('crash');
   const _crashSession = gameSession;
-  setTimeout(() => { if (gameSession === _crashSession) showGameOver(); }, 800);
+  setTimeout(() => { if (gameSession === _crashSession) showReviveScreen(); }, 800);
 }
 
 function updateHUD() {
@@ -2651,6 +2711,7 @@ function showMenu() {
   Snd.stopMusic();
   document.getElementById('shoot-btn').classList.add('hidden');
   document.getElementById('menu-coins').textContent = Save.data.coins;
+  document.getElementById('menu-diamonds').textContent = Save.data.diamonds || 0;
   document.getElementById('menu-level').textContent = t('lvl') + ' ' + Save.data.currentLevel;
   showScreen('screen-menu');
   drawMenuVehicle();
@@ -2682,6 +2743,95 @@ function beginLevel(lvlNum) {
   Snd.startMusic();
   lastTime = null;
   frameId = requestAnimationFrame(loop);
+}
+
+// ── REVIVE SCREEN ────────────────────────────────────────
+function showReviveScreen() {
+  if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
+  document.getElementById('shoot-btn').classList.add('hidden');
+
+  const cost = (reviveCount + 1) * 100;
+  const totalCoins = Save.data.coins + sessionCoins;
+  const canAfford = totalCoins >= cost;
+  const canAd = AdManager.canShowRewardedAd();
+
+  const coinBtn = document.getElementById('revive-coin-btn');
+  const adBtn   = document.getElementById('revive-ad-btn');
+  coinBtn.textContent = '💰 REVIVE — ' + cost + ' 🪙';
+  coinBtn.disabled = !canAfford;
+  adBtn.textContent = '🎬 Watch Ad (' + (AdManager.MAX_AD_REVIVES - AdManager._adRevivesThisSession) + ' left)';
+  adBtn.disabled = !canAd;
+
+  // Countdown ring setup
+  const TOTAL = 5;
+  let remaining = TOTAL;
+  const circumference = 301.6; // 2 * PI * 48
+  const ring = document.getElementById('revive-ring-fill');
+  const numEl = document.getElementById('revive-countdown-num');
+  ring.style.strokeDashoffset = '0';
+  numEl.textContent = TOTAL;
+
+  showScreen('screen-revive');
+
+  // Clear any previous timer
+  if (reviveTimer) { clearInterval(reviveTimer); reviveTimer = null; }
+
+  reviveTimer = setInterval(() => {
+    remaining--;
+    numEl.textContent = remaining;
+    ring.style.strokeDashoffset = String(circumference * (1 - remaining / TOTAL));
+    if (remaining <= 0) {
+      clearInterval(reviveTimer);
+      reviveTimer = null;
+      doActualGameOver();
+    }
+  }, 1000);
+}
+
+function doRevive(usedAd) {
+  if (reviveTimer) { clearInterval(reviveTimer); reviveTimer = null; }
+
+  if (!usedAd) {
+    const cost = (reviveCount + 1) * 100;
+    // Deduct cost — first from sessionCoins, then from saved coins if deficit
+    sessionCoins -= cost;
+    if (sessionCoins < 0) {
+      Save.data.coins = Math.max(0, Save.data.coins + sessionCoins);
+      sessionCoins = 0;
+      Save.save();
+    }
+  }
+
+  reviveCount++;
+
+  // Resume game
+  gameState = 'playing';
+  player.alive = true;
+  player.vy = 0;
+  player.invincible = 3;
+
+  // Clear nearby obstacles
+  obstacles = obstacles.filter(obs => obs.x >= player.x + 80);
+
+  showScreen('screen-game');
+  updateShootBtn();
+  lastTime = null;
+  frameId = requestAnimationFrame(loop);
+}
+
+function doActualGameOver() {
+  if (reviveTimer) { clearInterval(reviveTimer); reviveTimer = null; }
+
+  // Increment game count
+  Save.data.gameCount = (Save.data.gameCount || 0) + 1;
+  Save.save();
+
+  // Show interstitial every 7 real game overs
+  if (Save.data.gameCount % 7 === 0) {
+    AdManager.showInterstitial(() => showGameOver());
+  } else {
+    showGameOver();
+  }
 }
 
 function showGameOver() {
@@ -3531,6 +3681,21 @@ window.addEventListener('load', () => {
   document.getElementById('lcShopBtn').addEventListener('click', showShop);
   document.getElementById('lcMenuBtn').addEventListener('click', showMenu);
   document.getElementById('tut-start-btn').addEventListener('click', closeTutorialModal);
+
+  // Revive screen buttons
+  document.getElementById('revive-coin-btn').addEventListener('click', () => {
+    if (document.getElementById('revive-coin-btn').disabled) return;
+    doRevive(false);
+  });
+  document.getElementById('revive-ad-btn').addEventListener('click', () => {
+    if (document.getElementById('revive-ad-btn').disabled) return;
+    if (reviveTimer) { clearInterval(reviveTimer); reviveTimer = null; }
+    AdManager.showRewardedAd(() => doRevive(true));
+  });
+  document.getElementById('revive-giveup-btn').addEventListener('click', () => {
+    if (reviveTimer) { clearInterval(reviveTimer); reviveTimer = null; }
+    doActualGameOver();
+  });
 
   window.addEventListener('resize', () => {
     if (gameState === 'playing' || gameState === 'landing') {

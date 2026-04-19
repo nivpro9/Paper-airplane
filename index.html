@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<link rel="stylesheet" href="css/style.css?v=19">
+<link rel="stylesheet" href="css/style.css?v=24">
 </head>
 <body>
 
@@ -67,9 +67,11 @@
     <div class="sky-cloud c2"></div>
     <div class="sky-cloud c3"></div>
   </div>
-  <!-- Coins — top left -->
+  <!-- Coins & Diamonds — top left -->
   <div class="menu-coins-corner">
     <span class="coin-dot"></span><span id="menu-coins">0</span>
+    <span style="color:rgba(255,255,255,0.35);margin:0 2px">|</span>
+    <span style="font-size:16px">💎</span><span id="menu-diamonds" style="color:#90CAF9;font-size:18px;font-weight:bold;">0</span>
   </div>
   <!-- Language Selector -->
   <div class="lang-selector" id="langSelector">
@@ -114,6 +116,38 @@
       <span class="hud-label" data-i18n="ammo">AMMO</span>
       <span id="hud-ammo" class="hud-ammo-dots">—</span>
     </div>
+  </div>
+</div>
+
+<!-- REVIVE SCREEN -->
+<div id="screen-revive" class="screen">
+  <div class="revive-content">
+    <div class="revive-title">💀 YOU DIED</div>
+    <div class="revive-subtitle">CONTINUE?</div>
+    <div class="revive-ring-wrap">
+      <svg width="110" height="110" viewBox="0 0 110 110">
+        <circle id="revive-ring-bg" cx="55" cy="55" r="48" fill="none" stroke-width="8"/>
+        <circle id="revive-ring-fill" cx="55" cy="55" r="48" fill="none" stroke-width="8"
+          stroke-linecap="round"
+          stroke-dasharray="301.6"
+          stroke-dashoffset="0"/>
+      </svg>
+      <div id="revive-countdown-num">5</div>
+    </div>
+    <div class="revive-buttons">
+      <button id="revive-coin-btn" class="btn-revive-coin">💰 REVIVE — 100 🪙</button>
+      <button id="revive-ad-btn" class="btn-revive-ad">🎬 Watch Ad (3 left)</button>
+      <button id="revive-giveup-btn" class="btn-revive-giveup">Give Up</button>
+    </div>
+  </div>
+</div>
+
+<!-- INTERSTITIAL AD OVERLAY -->
+<div id="ad-interstitial">
+  <div class="ad-placeholder">
+    <div class="ad-placeholder-icon">📺</div>
+    <div class="ad-placeholder-text">AD PLACEHOLDER<br><small style="opacity:.5">Replace with AdMob SDK when publishing</small></div>
+    <button class="ad-placeholder-skip" id="ad-skip-btn">Please wait...</button>
   </div>
 </div>
 
@@ -198,7 +232,7 @@
   </div>
 </div>
 
-<script src="js/game.js?v=23"></script>
+<script src="js/game.js?v=24"></script>
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
