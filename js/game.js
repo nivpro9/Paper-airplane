@@ -637,13 +637,14 @@ let gameSession = 0;
 let isFreePlay = false;
 
 // ── REVIVE STATE ─────────────────────────────────────────
-let reviveCount = 0;       // resets each level start
-let reviveTimer = null;    // interval handle for countdown
+let reviveCount = 0;              // coin revives used this run (max 3)
+let coinReviveUsedThisGame = false; // true once any coin revive used → locks ads
+let reviveTimer = null;           // interval handle for countdown
 
 // ── AD MANAGER ───────────────────────────────────────────
 const AdManager = {
-  _adRevivesThisSession: 0,
-  MAX_AD_REVIVES: 3,
+  _adRevivesThisGame: 0,
+  MAX_AD_REVIVES: 2,
   showInterstitial(onClose) {
     // TODO: Replace with AdMob SDK call when publishing
     const overlay = document.getElementById('ad-interstitial');
@@ -675,14 +676,14 @@ const AdManager = {
     overlay.classList.add('active');
     skipBtn.textContent = 'Loading ad...';
     skipBtn.disabled = true;
-    this._adRevivesThisSession++;
+    this._adRevivesThisGame++;
     setTimeout(() => {
       overlay.classList.remove('active');
       if (onRewarded) onRewarded();
     }, 2000);
   },
-  canShowRewardedAd() { return this._adRevivesThisSession < this.MAX_AD_REVIVES; },
-  resetSession() { this._adRevivesThisSession = 0; },
+  canShowRewardedAd() { return this._adRevivesThisGame < this.MAX_AD_REVIVES; },
+  resetGame() { this._adRevivesThisGame = 0; },
 };
 
 // Boss state (null when no boss is active)
@@ -1130,6 +1131,9 @@ function initGame(levelNum) {
 
   boss = null;
   reviveCount = 0;
+  coinReviveUsedThisGame = false;
+  AdManager.resetGame();
+  _resetFinalizeGuard();
   distance = 0; sessionCoins = 0;
   obstacles = []; coins = []; ammoPickups = []; shieldPickups = []; particles = []; bullets = [];
   enemies = []; enemyBullets = []; popups = [];
@@ -2818,47 +2822,82 @@ function beginFreePlay() {
 }
 
 // ── REVIVE SCREEN ────────────────────────────────────────
+// ── UNIFIED DEATH SCREEN ─────────────────────────────────
+// Called immediately after player dies (with 800ms delay from handleHit)
 function showReviveScreen() {
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
   document.getElementById('shoot-btn').classList.add('hidden');
+  gameState = 'dead';
 
-  const cost = (reviveCount + 1) * 100;
-  const totalCoins = Save.data.coins + sessionCoins;
-  const canAfford = totalCoins >= cost;
-  const canAd = AdManager.canShowRewardedAd();
+  // Populate stats (coins not saved yet — only saved on final game-over)
+  const distM = Math.floor(distance);
+  document.getElementById('go-level').textContent = isFreePlay ? '∞' : currentLevel;
+  if (isFreePlay) {
+    const best = Save.data.freePlayBest || 0;
+    document.getElementById('go-distance').textContent = distM + 'm' + (best > 0 ? ' / 🏆 ' + best + 'm' : '');
+  } else {
+    document.getElementById('go-distance').textContent = distM + 'm / ' + levelData.goal + 'm';
+  }
+  document.getElementById('go-coins').textContent = '+' + sessionCoins;
 
+  showScreen('screen-revive');
+  applyLang();
+
+  // Determine available revives
+  const cost      = (reviveCount + 1) * 100;
+  const canCoin   = reviveCount < 3 && (Save.data.coins >= cost);
+  const canAd     = !coinReviveUsedThisGame && AdManager.canShowRewardedAd();
+
+  const continueEl = document.getElementById('death-continue');
+  const endedEl    = document.getElementById('death-ended');
+
+  if (!canCoin && !canAd) {
+    // No revives left — jump straight to ended state
+    continueEl.classList.add('hidden');
+    endedEl.classList.remove('hidden');
+    _finalizeGameOver(); // save coins etc.
+    return;
+  }
+
+  // Show continue section
+  continueEl.classList.remove('hidden');
+  endedEl.classList.add('hidden');
+
+  // Coin button
   const coinBtn = document.getElementById('revive-coin-btn');
-  const adBtn   = document.getElementById('revive-ad-btn');
-  coinBtn.textContent = '💰 REVIVE — ' + cost + ' 🪙';
-  coinBtn.disabled = !canAfford;
-  adBtn.textContent = '🎬 Watch Ad (' + (AdManager.MAX_AD_REVIVES - AdManager._adRevivesThisSession) + ' left)';
-  adBtn.disabled = !canAd;
+  coinBtn.textContent = '💰 Continue — ' + cost + ' 🪙';
+  coinBtn.disabled = !canCoin;
+  coinBtn.style.opacity = canCoin ? '1' : '0.45';
 
-  // Countdown ring setup
-  const TOTAL = 5;
+  // Ad section (hidden if player already used a coin revive)
+  const adSection = document.getElementById('revive-ad-section');
+  if (coinReviveUsedThisGame) {
+    adSection.classList.add('hidden');
+  } else {
+    adSection.classList.remove('hidden');
+    const adLeft = AdManager.MAX_AD_REVIVES - AdManager._adRevivesThisGame;
+    const adBtn  = document.getElementById('revive-ad-btn');
+    adBtn.textContent = '📺 Watch Ad (' + adLeft + ' left)';
+    adBtn.disabled = !canAd;
+    adBtn.style.opacity = canAd ? '1' : '0.45';
+  }
+
+  // Countdown ring (8 seconds)
+  const TOTAL = 8;
   let remaining = TOTAL;
-  const circumference = 301.6; // 2 * PI * 48
-  const ring = document.getElementById('revive-ring-fill');
+  const circumference = 301.6;
+  const ring  = document.getElementById('revive-ring-fill');
   const numEl = document.getElementById('revive-countdown-num');
   ring.style.strokeDashoffset = '0';
   numEl.textContent = TOTAL;
 
-  // Show continue phase, hide gameover phase
-  document.getElementById('revive-phase-continue').classList.remove('hidden');
-  document.getElementById('revive-phase-gameover').classList.add('hidden');
-
-  showScreen('screen-revive');
-
-  // Clear any previous timer
   if (reviveTimer) { clearInterval(reviveTimer); reviveTimer = null; }
-
   reviveTimer = setInterval(() => {
     remaining--;
     numEl.textContent = remaining;
     ring.style.strokeDashoffset = String(circumference * (1 - remaining / TOTAL));
     if (remaining <= 0) {
-      clearInterval(reviveTimer);
-      reviveTimer = null;
+      clearInterval(reviveTimer); reviveTimer = null;
       doActualGameOver();
     }
   }, 1000);
@@ -2868,14 +2907,11 @@ function doRevive(usedAd) {
   if (reviveTimer) { clearInterval(reviveTimer); reviveTimer = null; }
 
   if (!usedAd) {
+    // Coin revive — deduct cost from saved coins
+    coinReviveUsedThisGame = true;
     const cost = (reviveCount + 1) * 100;
-    // Deduct cost — first from sessionCoins, then from saved coins if deficit
-    sessionCoins -= cost;
-    if (sessionCoins < 0) {
-      Save.data.coins = Math.max(0, Save.data.coins + sessionCoins);
-      sessionCoins = 0;
-      Save.save();
-    }
+    Save.data.coins = Math.max(0, Save.data.coins - cost);
+    Save.save();
   }
 
   reviveCount++;
@@ -2885,10 +2921,7 @@ function doRevive(usedAd) {
   player.alive = true;
   player.vy = 0;
   player.invincible = 3;
-
-  // Clear nearby obstacles
   obstacles = obstacles.filter(obs => obs.x >= player.x + 80);
-
   showScreen('screen-game');
   updateShootBtn();
   lastTime = null;
@@ -2897,52 +2930,39 @@ function doRevive(usedAd) {
 
 function doActualGameOver() {
   if (reviveTimer) { clearInterval(reviveTimer); reviveTimer = null; }
+  _finalizeGameOver();
+  // Switch to ended section on same screen
+  const continueEl = document.getElementById('death-continue');
+  const endedEl    = document.getElementById('death-ended');
+  continueEl.classList.add('hidden');
 
-  // Increment game count
+  // Interstitial every 7 game overs
   Save.data.gameCount = (Save.data.gameCount || 0) + 1;
   Save.save();
-
-  // Show interstitial every 7 real game overs
   if (Save.data.gameCount % 7 === 0) {
-    AdManager.showInterstitial(() => showGameOver());
+    AdManager.showInterstitial(() => { endedEl.classList.remove('hidden'); });
   } else {
-    showGameOver();
+    endedEl.classList.remove('hidden');
   }
 }
 
-function showGameOver() {
-  gameState = 'dead';
-  if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
-  document.getElementById('shoot-btn').classList.add('hidden');
-  Save.data.coins += sessionCoins;
+function _finalizeGameOver() {
+  // Save coins + free play best (idempotent — only applies once)
+  if (_finalizeGameOver._done) return;
+  _finalizeGameOver._done = true;
 
-  // Free play best distance tracking
+  Save.data.coins += sessionCoins;
   const distM = Math.floor(distance);
-  let fpNewBest = false;
-  if (isFreePlay) {
-    if (distM > (Save.data.freePlayBest || 0)) {
-      Save.data.freePlayBest = distM;
-      fpNewBest = true;
-    }
+  if (isFreePlay && distM > (Save.data.freePlayBest || 0)) {
+    Save.data.freePlayBest = distM;
+    // Update the distance display to show new best
+    document.getElementById('go-distance').textContent = distM + 'm 🏆 NEW BEST!';
   }
   Save.save();
-
-  // Populate stats
-  document.getElementById('go-level').textContent = isFreePlay ? '∞' : currentLevel;
-  if (isFreePlay) {
-    const best = Save.data.freePlayBest;
-    document.getElementById('go-distance').textContent = distM + 'm' + (fpNewBest ? ' 🏆 NEW BEST!' : ' / 🏆 ' + best + 'm');
-  } else {
-    document.getElementById('go-distance').textContent = distM + 'm / ' + levelData.goal + 'm';
-  }
-  document.getElementById('go-coins').textContent = '+' + sessionCoins;
-
-  // Switch to phase 2 on the same revive screen (no extra screen transition)
-  document.getElementById('revive-phase-continue').classList.add('hidden');
-  document.getElementById('revive-phase-gameover').classList.remove('hidden');
-  showScreen('screen-revive');
-  applyLang();
 }
+
+// Reset the finalize guard at the start of every new game
+function _resetFinalizeGuard() { _finalizeGameOver._done = false; }
 
 function showLevelComplete() {
   gameState = 'levelcomplete';
@@ -3849,7 +3869,7 @@ window.addEventListener('load', () => {
   document.getElementById('lcMenuBtn').addEventListener('click', showMenu);
   document.getElementById('tut-start-btn').addEventListener('click', closeTutorialModal);
 
-  // Revive screen buttons
+  // Death screen buttons
   document.getElementById('revive-coin-btn').addEventListener('click', () => {
     if (document.getElementById('revive-coin-btn').disabled) return;
     doRevive(false);

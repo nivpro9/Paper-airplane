@@ -89,8 +89,8 @@
     <div class="stats-row">
       <div class="stat"><span id="menu-level">LVL 1</span></div>
     </div>
+    <button id="freePlayBtn" class="btn-play" style="background:linear-gradient(135deg,#7b1fa2,#ab47bc);margin-bottom:8px">✈️ MY FLIGHT <span id="fp-best-badge" style="font-size:11px;opacity:0.85"></span></button>
     <button id="playBtn" class="btn-play" data-i18n="play">PLAY</button>
-    <button id="freePlayBtn" class="btn-levels" style="background:linear-gradient(135deg,#7b1fa2,#ab47bc)">🌍 FREE PLAY <span id="fp-best-badge" style="font-size:11px;opacity:0.85"></span></button>
     <button id="levelsBtn" class="btn-levels" data-i18n="levelsBtn">🗺️ LEVELS</button>
     <button id="shopBtn" class="btn-upgrades" data-i18n="upgradesMenu">⚙️ UPGRADES</button>
     <button id="spinBtn" class="btn-spin" onclick="showSpin()">🎰 DAILY SPIN <span id="spin-badge" class="spin-badge hidden">!</span><span id="spin-countdown" class="spin-countdown"></span></button>
@@ -119,47 +119,50 @@
   </div>
 </div>
 
-<!-- REVIVE SCREEN -->
+<!-- DEATH SCREEN — unified single screen -->
 <div id="screen-revive" class="screen">
-  <div class="revive-content">
-    <!-- Phase 1: countdown + revive options -->
-    <div id="revive-phase-continue">
-      <div class="revive-title">💀 YOU DIED</div>
-      <div class="revive-subtitle">CONTINUE?</div>
-      <div class="revive-ring-wrap">
-        <svg width="110" height="110" viewBox="0 0 110 110">
-          <circle id="revive-ring-bg" cx="55" cy="55" r="48" fill="none" stroke-width="8"/>
-          <circle id="revive-ring-fill" cx="55" cy="55" r="48" fill="none" stroke-width="8"
-            stroke-linecap="round"
-            stroke-dasharray="301.6"
-            stroke-dashoffset="0"/>
-        </svg>
-        <div id="revive-countdown-num">5</div>
+  <div class="death-content">
+    <!-- Always visible: title + stats -->
+    <div class="crash-icon">💥</div>
+    <h1 class="go-title" data-i18n="crashed">OOPS! 😅</h1>
+    <div class="go-stats">
+      <div class="go-stat">
+        <div class="go-stat-label" data-i18n="level">LEVEL</div>
+        <div class="go-stat-value" id="go-level">1</div>
       </div>
-      <div class="revive-buttons">
-        <button id="revive-coin-btn" class="btn-revive-coin">💰 REVIVE — 100 🪙</button>
-        <button id="revive-ad-btn" class="btn-revive-ad">🎬 Watch Ad (3 left)</button>
-        <button id="revive-giveup-btn" class="btn-revive-giveup">Give Up</button>
+      <div class="go-stat">
+        <div class="go-stat-label" data-i18n="distance">DISTANCE</div>
+        <div class="go-stat-value" id="go-distance" style="font-size:16px">0m</div>
+      </div>
+      <div class="go-stat">
+        <div class="go-stat-label" data-i18n="coins">COINS</div>
+        <div class="go-stat-value" id="go-coins">+0</div>
       </div>
     </div>
-    <!-- Phase 2: game over stats + actions (replaces phase 1 in same screen) -->
-    <div id="revive-phase-gameover" class="hidden">
-      <div class="crash-icon">💥</div>
-      <h1 class="go-title" data-i18n="crashed">OOPS! 😅</h1>
-      <div class="go-stats">
-        <div class="go-stat">
-          <div class="go-stat-label" data-i18n="level">LEVEL</div>
-          <div class="go-stat-value" id="go-level">1</div>
-        </div>
-        <div class="go-stat">
-          <div class="go-stat-label" data-i18n="distance">DISTANCE</div>
-          <div class="go-stat-value" id="go-distance" style="font-size:18px">0m</div>
-        </div>
-        <div class="go-stat">
-          <div class="go-stat-label" data-i18n="coins">COINS</div>
-          <div class="go-stat-value" id="go-coins">+0</div>
-        </div>
+
+    <!-- CONTINUE section: shown while revives are available -->
+    <div id="death-continue" class="hidden">
+      <div class="revive-subtitle">CONTINUE?</div>
+      <div class="revive-ring-wrap">
+        <svg width="88" height="88" viewBox="0 0 110 110">
+          <circle id="revive-ring-bg" cx="55" cy="55" r="48" fill="none" stroke-width="7"/>
+          <circle id="revive-ring-fill" cx="55" cy="55" r="48" fill="none" stroke-width="7"
+            stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="0"/>
+        </svg>
+        <div id="revive-countdown-num">8</div>
       </div>
+      <!-- Coin revive: up to 3x, cost rises 100→200→300 -->
+      <button id="revive-coin-btn" class="btn-revive-coin">💰 Continue — 100 🪙</button>
+      <!-- Ad revive: up to 2x, hidden after any coin revive -->
+      <div id="revive-ad-section">
+        <div class="revive-or">— or —</div>
+        <button id="revive-ad-btn" class="btn-revive-ad">📺 Watch Ad (2 left)</button>
+      </div>
+      <button id="revive-giveup-btn" class="btn-revive-giveup">Give Up</button>
+    </div>
+
+    <!-- ENDED section: shown after countdown/give-up/all revives used -->
+    <div id="death-ended" class="hidden">
       <button id="retryBtn" class="btn-play" data-i18n="tryAgain">TRY AGAIN</button>
       <button id="goShopBtn" class="btn-shop" data-i18n="upgradesBtn">🔧 UPGRADES</button>
       <button id="goMenuBtn" class="btn-menu" data-i18n="menu">MENU</button>
@@ -243,7 +246,7 @@
   </div>
 </div>
 
-<script src="js/game.js?v=32"></script>
+<script src="js/game.js?v=33"></script>
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
