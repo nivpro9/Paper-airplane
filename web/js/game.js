@@ -2487,8 +2487,10 @@ function buyUpgrade(id) {
 function setupTouch() {
   const gc = document.getElementById('screen-game');
 
-  // Block ALL page scroll/bounce on iOS Safari — must be on document, passive:false
-  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  // Block scroll/bounce on iOS Safari during gameplay only — allow scroll in shop/levels
+  document.addEventListener('touchmove', e => {
+    if (gameState === 'playing' || gameState === 'landing') e.preventDefault();
+  }, { passive: false });
 
   // Hold anywhere on screen = fly up; double-tap = shoot (level 5+)
   let lastTapTime = 0;
