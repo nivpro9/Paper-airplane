@@ -221,7 +221,7 @@
   <div class="shop-header">
     <button id="shopBackBtn" class="btn-back">←</button>
     <h1 data-i18n="upgradesTitle">UPGRADES</h1>
-    <div class="shop-coins">🪙 <span id="shop-coins">0</span></div>
+    <div class="shop-coins">🪙 <span id="shop-coins">0</span> &nbsp; 💎 <span id="shop-diamonds">0</span></div>
   </div>
   <div class="shop-section">
     <h3 data-i18n="vehicles">VEHICLES</h3>
@@ -231,9 +231,13 @@
     <h3 data-i18n="upgradesSec">UPGRADES</h3>
     <div class="upgrades-list" id="upgrades-list"></div>
   </div>
+  <div class="shop-section">
+    <h3>✨ TRAIL SKINS</h3>
+    <div class="skins-grid" id="skins-grid"></div>
+  </div>
 </div>
 
-<script src="js/game.js?v=30"></script>
+<script src="js/game.js?v=31"></script>
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});

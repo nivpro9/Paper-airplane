@@ -68,6 +68,19 @@ const VEHICLES = [
   { id:9, name:'Super Airflight',      emoji:'🛸',  cost:16200, levelReq:60, speed:2.6,  control:1.3,  color:'#37474f', landing:'military', perk:'🔫 Auto-fires cannon every 4s (no ammo needed)'},
 ];
 
+// ── TRAIL SKINS ──────────────────────────────────────────
+const TRAIL_SKINS = [
+  { id:0, name:'Default',    emoji:'✖️',  cost:0,  currency:'coins',    colors:[] },
+  { id:1, name:'Sparkle',    emoji:'✨',  cost:300,  currency:'coins',    colors:['#FFD700','#FFF9C4','#FFFFFF'] },
+  { id:2, name:'Rainbow',    emoji:'🌈',  cost:500,  currency:'coins',    colors:['#FF4444','#FF8C00','#FFD700','#4CAF50','#2196F3','#9C27B0'] },
+  { id:3, name:'Sunray',     emoji:'☀️',  cost:800,  currency:'coins',    colors:['#FFD700','#FF8C00','#FFEE58'] },
+  { id:4, name:'Ice',        emoji:'❄️',  cost:1200, currency:'coins',    colors:['#B3E5FC','#E1F5FE','#80D8FF'] },
+  { id:5, name:'Lightning',  emoji:'⚡',  cost:5,    currency:'diamonds', colors:['#FFD700','#FFFDE7','#80D8FF'] },
+  { id:6, name:'Fire',       emoji:'🔥',  cost:8,    currency:'diamonds', colors:['#FF5722','#FF9800','#FFD700'] },
+  { id:7, name:'Wave',       emoji:'🌊',  cost:10,   currency:'diamonds', colors:['#0288D1','#29B6F6','#B3E5FC'] },
+  { id:8, name:'Neon',       emoji:'👾',  cost:15,   currency:'diamonds', colors:['#FF4081','#7C4DFF','#00E5FF'] },
+];
+
 // ── UPGRADES ─────────────────────────────────────────────
 const UPGRADES = [
   { id:'control', name:'Better Control', icon:'🎯', desc:'Smoother joystick response',      maxLevel:5, costs:[60,120,220,400,750]  },
@@ -525,6 +538,8 @@ const Save = {
     gameCount: 0,
     diamonds: 0,
     freePlayBest: 0,
+    activeSkin: 0,
+    ownedSkins: [0],
   },
   data: null,
   fresh() { return JSON.parse(JSON.stringify(this.defaults)); },
@@ -588,6 +603,9 @@ const Save = {
     if (this.data.gameCount === undefined) this.data.gameCount = 0;
     if (this.data.diamonds === undefined) this.data.diamonds = 0;
     if (this.data.freePlayBest === undefined) this.data.freePlayBest = 0;
+    if (this.data.activeSkin === undefined) this.data.activeSkin = 0;
+    if (!this.data.ownedSkins || !Array.isArray(this.data.ownedSkins)) this.data.ownedSkins = [0];
+    if (!this.data.ownedSkins.includes(0)) this.data.ownedSkins.unshift(0);
     // Re-save to populate all storage mechanisms in case one was missing
     this.save();
   },
@@ -2106,6 +2124,137 @@ const COIN_COLORS = [
   ['#FF7043','#BF360C'], // Canyon — copper
   ['#E040FB','#7B1FA2'], // Space — violet
 ];
+// ── TRAIL SKIN RENDERER ──────────────────────────────────
+function drawTrail() {
+  if (!player || !player.trail || player.trail.length < 2) return;
+  const skinId = Save.data.activeSkin || 0;
+  const skin   = TRAIL_SKINS[skinId] || TRAIL_SKINS[0];
+  const trail  = player.trail;
+  const len    = trail.length;
+  const now    = performance.now() * 0.001;
+
+  if (skinId === 0) {
+    // Default: plain white fade
+    trail.forEach((pt, i) => {
+      const alpha = (1 - i / len) * 0.35;
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, (1 - i / len) * 8, 0, Math.PI * 2); ctx.fill();
+    });
+    return;
+  }
+
+  const colors = skin.colors;
+  if (skinId === 1) {
+    // Sparkle: tiny golden stars scattered along trail
+    trail.forEach((pt, i) => {
+      const frac  = 1 - i / len;
+      const alpha = frac * 0.9;
+      const col   = colors[i % colors.length];
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(pt.x + (Math.sin(i * 2.7 + now) * 5), pt.y + (Math.cos(i * 3.1 + now) * 5));
+      ctx.fillStyle = col;
+      const r = frac * 5;
+      for (let s = 0; s < 4; s++) {
+        const a = (s / 4) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+  } else if (skinId === 2) {
+    // Rainbow: hue-cycling dots
+    trail.forEach((pt, i) => {
+      const frac = 1 - i / len;
+      const col  = colors[i % colors.length];
+      ctx.save(); ctx.globalAlpha = frac * 0.8;
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, frac * 9, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
+  } else if (skinId === 3) {
+    // Sunray: warm glow with radial gradient
+    trail.forEach((pt, i) => {
+      const frac = 1 - i / len;
+      if (frac < 0.05) return;
+      const r  = frac * 12;
+      const grd = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, r);
+      grd.addColorStop(0, `rgba(255,220,50,${frac * 0.7})`);
+      grd.addColorStop(1, 'rgba(255,100,0,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2); ctx.fill();
+    });
+  } else if (skinId === 4) {
+    // Ice: pale blue crystalline dots
+    trail.forEach((pt, i) => {
+      const frac = 1 - i / len;
+      ctx.save(); ctx.globalAlpha = frac * 0.75;
+      const grd = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, frac * 10);
+      grd.addColorStop(0, '#FFFFFF'); grd.addColorStop(0.4, '#B3E5FC'); grd.addColorStop(1, 'rgba(0,200,255,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, frac * 10, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
+  } else if (skinId === 5) {
+    // Lightning: jagged electric line + sparks
+    ctx.save();
+    ctx.strokeStyle = '#FFD700'; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.85;
+    ctx.shadowColor = '#80D8FF'; ctx.shadowBlur = 8;
+    ctx.beginPath();
+    trail.forEach((pt, i) => {
+      const jitter = i > 0 ? (Math.sin(i * 17.3 + now * 8) * 5) : 0;
+      i === 0 ? ctx.moveTo(pt.x, pt.y + jitter) : ctx.lineTo(pt.x, pt.y + jitter);
+    });
+    ctx.stroke();
+    // Sparks
+    trail.forEach((pt, i) => {
+      if (i % 3 !== 0) return;
+      const frac = 1 - i / len;
+      ctx.fillStyle = i % 2 === 0 ? '#FFFDE7' : '#80D8FF';
+      ctx.globalAlpha = frac * 0.9;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y + (Math.sin(i * 5.1 + now * 6) * 8), frac * 3, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.restore();
+  } else if (skinId === 6) {
+    // Fire: gradient from yellow (near) to red (far), bigger near player
+    trail.forEach((pt, i) => {
+      const frac = 1 - i / len;
+      const r    = frac * 14;
+      if (r < 1) return;
+      const grd = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, r);
+      grd.addColorStop(0, `rgba(255,230,50,${frac * 0.9})`);
+      grd.addColorStop(0.5, `rgba(255,120,0,${frac * 0.6})`);
+      grd.addColorStop(1, 'rgba(200,30,0,0)');
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y + Math.sin(i * 2.1 + now * 3) * 3, r, 0, Math.PI * 2); ctx.fill();
+    });
+  } else if (skinId === 7) {
+    // Wave: sinusoidal colored dots
+    trail.forEach((pt, i) => {
+      const frac = 1 - i / len;
+      const col  = colors[i % colors.length];
+      const yOff = Math.sin(i * 0.8 + now * 4) * 6;
+      ctx.save(); ctx.globalAlpha = frac * 0.8;
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y + yOff, frac * 8, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
+  } else if (skinId === 8) {
+    // Neon: glowing multicolor
+    trail.forEach((pt, i) => {
+      const frac = 1 - i / len;
+      const col  = colors[i % colors.length];
+      ctx.save();
+      ctx.shadowColor = col; ctx.shadowBlur = 12;
+      ctx.globalAlpha = frac * 0.9;
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, frac * 7, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
+  }
+}
+
 function drawCoin(coin, t) {
   if (coin.collected) return;
   const val = coin.val || 1;
@@ -2451,11 +2600,7 @@ function draw(elapsed) {
   if (landing && landing.runway) drawRunway(landing.runway);
 
   // Trail
-  player.trail.forEach((pt, i) => {
-    const alpha = (1 - i / player.trail.length) * 0.35;
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-    ctx.beginPath(); ctx.arc(pt.x, pt.y, (1 - i/player.trail.length)*8, 0, Math.PI*2); ctx.fill();
-  });
+  drawTrail();
 
   // Coins, ammo, shields, bullets, enemies, obstacles
   coins.forEach(c => drawCoin(c, elapsed));
@@ -2926,6 +3071,7 @@ function drawMenuVehicle() {
 // ── SHOP ─────────────────────────────────────────────────
 function renderShop() {
   document.getElementById('shop-coins').textContent = Save.data.coins;
+  document.getElementById('shop-diamonds').textContent = Save.data.diamonds || 0;
   const curLvl = Save.data.currentLevel;
   document.getElementById('vehicles-grid').innerHTML = VEHICLES.map(v => {
     const owned    = Save.data.ownedVehicles.includes(v.id);
@@ -2975,6 +3121,53 @@ function renderShop() {
       ${maxed ? '<div class="up-maxed">MAX</div>' : `<div class="up-cost">🪙 ${cost}</div>`}
     </div>`;
   }).join('');
+
+  // Skins
+  document.getElementById('skins-grid').innerHTML = TRAIL_SKINS.map(sk => {
+    const owned  = Save.data.ownedSkins.includes(sk.id);
+    const active = Save.data.activeSkin === sk.id;
+    const isDiamond = sk.currency === 'diamonds';
+    const costStr = sk.cost === 0 ? 'FREE' : (isDiamond ? `💎 ${sk.cost}` : `🪙 ${sk.cost}`);
+    const canAfford = sk.cost === 0 || (isDiamond ? (Save.data.diamonds || 0) >= sk.cost : Save.data.coins >= sk.cost);
+    const btnLabel = active ? 'ACTIVE' : owned ? 'EQUIP' : costStr;
+    const btnStyle = active
+      ? 'background:#FF6B35;color:#fff'
+      : owned
+        ? 'background:#4CAF50;color:#fff'
+        : canAfford
+          ? (isDiamond ? 'background:#0288D1;color:#fff' : 'background:#7B1FA2;color:#fff')
+          : 'background:#555;color:#aaa;pointer-events:none';
+    // Preview bar: colored squares from skin colors
+    const preview = sk.colors.length
+      ? sk.colors.map(c => `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin:1px"></span>`).join('')
+      : '<span style="color:#888;font-size:11px">—</span>';
+    return `<div class="skin-card${active ? ' skin-active' : ''}" onclick="selectSkin(${sk.id})">
+      <div class="skin-emoji">${sk.emoji}</div>
+      <div class="skin-name">${sk.name}</div>
+      <div class="skin-preview">${preview}</div>
+      <button class="skin-btn" style="${btnStyle}">${btnLabel}</button>
+    </div>`;
+  }).join('');
+}
+
+function selectSkin(id) {
+  const sk = TRAIL_SKINS[id];
+  if (!sk) return;
+  if (Save.data.ownedSkins.includes(id)) {
+    // Equip
+    Save.data.activeSkin = id;
+    Save.save(); renderShop(); Snd.play('coin');
+  } else {
+    // Buy
+    const isDiamond = sk.currency === 'diamonds';
+    const balance = isDiamond ? (Save.data.diamonds || 0) : Save.data.coins;
+    if (balance < sk.cost) return;
+    if (isDiamond) { Save.data.diamonds = (Save.data.diamonds || 0) - sk.cost; }
+    else { Save.data.coins -= sk.cost; }
+    Save.data.ownedSkins.push(id);
+    Save.data.activeSkin = id;
+    Save.save(); renderShop(); Snd.play('buy');
+  }
 }
 
 function selectVehicle(id) {

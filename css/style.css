@@ -409,6 +409,24 @@ body {
 .up-cost { color: var(--coin); font-size: 14px; font-weight: bold; white-space: nowrap; }
 .up-maxed { color: #4CAF50; font-size: 12px; font-weight: bold; }
 
+/* ── TRAIL SKINS ── */
+.skins-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; padding-bottom: 12px; }
+.skin-card {
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  padding: 10px 6px 8px;
+  display: flex; flex-direction: column; align-items: center;
+  cursor: pointer; user-select: none;
+  transition: transform .12s, border-color .15s;
+}
+.skin-card.skin-active { border-color: #FF6B35; background: rgba(255,107,53,0.13); }
+.skin-card:active { transform: scale(0.93); }
+.skin-emoji { font-size: 26px; line-height: 1.1; }
+.skin-name  { font-size: 11px; font-weight: 700; color: #fff; text-align: center; margin: 3px 0 4px; letter-spacing: .5px; }
+.skin-preview { display: flex; flex-wrap: wrap; justify-content: center; min-height: 14px; margin-bottom: 6px; }
+.skin-btn { width: 100%; padding: 5px 0; border-radius: 20px; border: none; font-size: 10px; font-weight: 800; cursor: pointer; letter-spacing: .5px; }
+
 @keyframes pulse { from{opacity:1;transform:scale(1)} to{opacity:0.7;transform:scale(1.05)} }
 
 /* ── LEVEL SELECT ── */
