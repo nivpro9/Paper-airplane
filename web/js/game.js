@@ -2050,13 +2050,13 @@ function drawBackground(t) {
 }
 
 // ── MAIN DRAW ────────────────────────────────────────────
-function draw(t) {
+function draw(elapsed) {
   ctx.clearRect(0, 0, W, H);
   ctx.save();
   if (screenShake > 0.02) {
     ctx.translate((Math.random() - 0.5) * screenShake * 10, (Math.random() - 0.5) * screenShake * 10);
   }
-  drawBackground(t);
+  drawBackground(elapsed);
 
   // Landing runway (behind everything else, above bg)
   if (landing && landing.runway) drawRunway(landing.runway);
@@ -2069,7 +2069,7 @@ function draw(t) {
   });
 
   // Coins, ammo, shields, mystery boxes, bullets, enemies, obstacles
-  coins.forEach(c => drawCoin(c, t));
+  coins.forEach(c => drawCoin(c, elapsed));
   ammoPickups.forEach(ac => drawAmmoCrate(ac));
   shieldPickups.forEach(sp => drawShieldPickup(sp));
   mysteryBoxes.forEach(mb => drawMysteryBox(mb));
@@ -2081,7 +2081,7 @@ function draw(t) {
   drawPopups();
 
   // Shield flash
-  if (player.invincible > 0 && Math.floor(t*8)%2===0) {
+  if (player.invincible > 0 && Math.floor(elapsed*8)%2===0) {
     ctx.save(); ctx.translate(player.x, player.y);
     ctx.strokeStyle='rgba(100,255,100,0.8)'; ctx.lineWidth=3;
     ctx.beginPath(); ctx.arc(0,0,36,0,Math.PI*2); ctx.stroke(); ctx.restore();
