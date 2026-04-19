@@ -1709,15 +1709,10 @@ function drawVehicle(ctx, x, y, v, tilt = 0, scale = 1) {
 
 // ── DRAW OBSTACLE ─────────────────────────────────────────
 function drawObstacle(obs) {
-  const [pc, pt] = PILLAR_COLS[currentBiome] || PILLAR_COLS[0];
   if (obs.type === 'pillar') {
-    ctx.fillStyle = pc; ctx.fillRect(obs.x - obs.w/2, 0, obs.w, obs.gapY - obs.gap/2);
-    ctx.fillStyle = pt; ctx.fillRect(obs.x - obs.w/2 - 6, obs.gapY - obs.gap/2 - 20, obs.w+12, 20);
-    ctx.fillStyle = pc; ctx.fillRect(obs.x - obs.w/2, obs.gapY + obs.gap/2, obs.w, H);
-    ctx.fillStyle = pt; ctx.fillRect(obs.x - obs.w/2 - 6, obs.gapY + obs.gap/2, obs.w+12, 20);
-    ctx.fillStyle='rgba(255,255,255,0.08)';
-    for(let y=0;y<obs.gapY-obs.gap/2;y+=24) ctx.fillRect(obs.x-obs.w/2+10,y,8,12);
-    for(let y=obs.gapY+obs.gap/2+4;y<H;y+=24) ctx.fillRect(obs.x-obs.w/2+10,y,8,12);
+    const topH = obs.gapY - obs.gap / 2;
+    const botY = obs.gapY + obs.gap / 2;
+    _drawWallForBiome(obs.x, obs.w, topH, botY);
   } else if (obs.type === 'fan') {
     obs.angle += 0.08;
     ctx.save(); ctx.translate(obs.x, obs.y);
@@ -1742,6 +1737,342 @@ function drawObstacle(obs) {
     ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(11,-3,1.5,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
+}
+
+// ── BIOME WALL DRAWING ────────────────────────────────────
+function _drawWallForBiome(cx, w, topH, botY) {
+  switch (currentBiome) {
+    case 0: _wallCloud(cx, w, topH, botY);      break;
+    case 1: _wallBuilding(cx, w, topH, botY);   break;
+    case 2: _wallNeon(cx, w, topH, botY);       break;
+    case 3: _wallStormCloud(cx, w, topH, botY); break;
+    case 4: _wallIce(cx, w, topH, botY);        break;
+    case 5: _wallRock(cx, w, topH, botY);       break;
+    case 6: _wallAsteroid(cx, w, topH, botY);   break;
+    default: _wallCloud(cx, w, topH, botY);
+  }
+}
+
+// Biome 0 — Sky: fluffy white cloud banks
+function _wallCloud(cx, w, topH, botY) {
+  const x0 = cx - w / 2;
+  const seed = (cx * 7) | 0;
+  const step = 18;
+  // Top wall — light blue cloud body
+  ctx.fillStyle = '#d6eeff';
+  ctx.fillRect(x0, 0, w, topH);
+  // Fluffy bottom edge (semi-circles)
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i * step < w + step; i++) {
+    const bx = x0 + (((seed + i * 31) % 8) - 4) + i * step;
+    const r = 12 + ((seed + i * 17) % 6);
+    ctx.beginPath(); ctx.arc(bx, topH - 4, r, Math.PI, Math.PI * 2); ctx.fill();
+  }
+  // Soft shadow under top cloud
+  const gradT = ctx.createLinearGradient(0, topH - 18, 0, topH);
+  gradT.addColorStop(0, 'rgba(150,190,230,0)');
+  gradT.addColorStop(1, 'rgba(120,170,220,0.35)');
+  ctx.fillStyle = gradT; ctx.fillRect(x0, topH - 18, w, 18);
+
+  // Bottom wall — light blue cloud body
+  ctx.fillStyle = '#d6eeff';
+  ctx.fillRect(x0, botY, w, H - botY);
+  // Fluffy top edge
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i * step < w + step; i++) {
+    const bx = x0 + (((seed + i * 23) % 8) - 4) + i * step;
+    const r = 12 + ((seed + i * 13) % 6);
+    ctx.beginPath(); ctx.arc(bx, botY + 4, r, 0, Math.PI); ctx.fill();
+  }
+  // Shadow at top of bottom cloud
+  const gradB = ctx.createLinearGradient(0, botY, 0, botY + 18);
+  gradB.addColorStop(0, 'rgba(120,170,220,0.35)');
+  gradB.addColorStop(1, 'rgba(150,190,230,0)');
+  ctx.fillStyle = gradB; ctx.fillRect(x0, botY, w, 18);
+}
+
+// Biome 1 — Sunset: building silhouettes with lit windows
+function _wallBuilding(cx, w, topH, botY) {
+  const x0 = cx - w / 2;
+  const seed = (cx * 11) | 0;
+  const bldW = Math.max(16, (w / 3) | 0);
+
+  // Top wall — dark sky
+  ctx.fillStyle = '#12060a';
+  ctx.fillRect(x0, 0, w, topH);
+  // Building silhouettes hanging from top
+  for (let i = 0; x0 + i * bldW < cx + w / 2; i++) {
+    const bx = x0 + i * bldW;
+    const bh = 20 + ((seed + i * 37) % Math.max(20, (topH * 0.65) | 0));
+    const bTop = topH - Math.min(bh, topH - 2);
+    ctx.fillStyle = '#1e0e08';
+    ctx.fillRect(bx, bTop, bldW - 2, topH - bTop);
+    const rows = Math.max(1, ((topH - bTop - 8) / 14) | 0);
+    for (let wr = 0; wr < rows; wr++) {
+      const wy = bTop + 5 + wr * 14;
+      ctx.fillStyle = ((seed + i * 7 + wr * 3) % 3) !== 0
+        ? 'rgba(255,200,80,0.9)' : 'rgba(0,0,0,0.5)';
+      ctx.fillRect(bx + 3, wy, bldW - 8, 8);
+    }
+    if (topH > 10) {
+      ctx.fillStyle = 'rgba(255,60,20,0.9)';
+      ctx.beginPath(); ctx.arc(bx + bldW / 2, bTop, 3, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  // Warm glow at gap
+  const glowT = ctx.createLinearGradient(0, topH - 20, 0, topH);
+  glowT.addColorStop(0, 'rgba(255,100,20,0)');
+  glowT.addColorStop(1, 'rgba(255,100,20,0.6)');
+  ctx.fillStyle = glowT; ctx.fillRect(x0, topH - 20, w, 20);
+
+  // Bottom wall — dark sky
+  ctx.fillStyle = '#12060a';
+  ctx.fillRect(x0, botY, w, H - botY);
+  // Building silhouettes rising from bottom
+  for (let i = 0; x0 + i * bldW < cx + w / 2; i++) {
+    const bx = x0 + i * bldW;
+    const bh = 20 + (((seed * 2) + i * 29) % Math.max(20, ((H - botY) * 0.55) | 0));
+    const bEnd = Math.min(botY + bh, H);
+    ctx.fillStyle = '#1e0e08';
+    ctx.fillRect(bx, botY, bldW - 2, bEnd - botY);
+    const rows = Math.max(1, ((bEnd - botY - 8) / 14) | 0);
+    for (let wr = 0; wr < rows; wr++) {
+      const wy = botY + 5 + wr * 14;
+      ctx.fillStyle = (((seed * 2) + i * 11 + wr * 5) % 3) !== 0
+        ? 'rgba(255,200,80,0.9)' : 'rgba(0,0,0,0.5)';
+      ctx.fillRect(bx + 3, wy, bldW - 8, 8);
+    }
+  }
+  // Warm glow at gap
+  const glowB = ctx.createLinearGradient(0, botY, 0, botY + 20);
+  glowB.addColorStop(0, 'rgba(255,100,20,0.6)');
+  glowB.addColorStop(1, 'rgba(255,100,20,0)');
+  ctx.fillStyle = glowB; ctx.fillRect(x0, botY, w, 20);
+}
+
+// Biome 2 — Night: dark walls with cyan neon edges
+function _wallNeon(cx, w, topH, botY) {
+  const x0 = cx - w / 2;
+  const seed = (cx * 13) | 0;
+  // Dark wall bodies
+  ctx.fillStyle = '#080818';
+  ctx.fillRect(x0, 0, w, topH);
+  ctx.fillRect(x0, botY, w, H - botY);
+  // Vertical neon streaks inside walls
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    const lx = x0 + 8 + ((seed + i * 19) % Math.max(1, w - 16));
+    ctx.strokeStyle = 'rgba(0,229,255,0.15)';
+    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, topH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lx, botY); ctx.lineTo(lx, H); ctx.stroke();
+  }
+  // Neon bar + glow — top gap edge
+  const glowT = ctx.createLinearGradient(0, topH - 26, 0, topH - 4);
+  glowT.addColorStop(0, 'rgba(0,229,255,0)');
+  glowT.addColorStop(1, 'rgba(0,229,255,0.4)');
+  ctx.fillStyle = glowT; ctx.fillRect(x0 - 4, topH - 26, w + 8, 22);
+  ctx.fillStyle = '#00e5ff'; ctx.fillRect(x0 - 4, topH - 4, w + 8, 4);
+  // Neon bar + glow — bottom gap edge
+  ctx.fillStyle = '#00e5ff'; ctx.fillRect(x0 - 4, botY, w + 8, 4);
+  const glowB = ctx.createLinearGradient(0, botY + 4, 0, botY + 26);
+  glowB.addColorStop(0, 'rgba(0,229,255,0.4)');
+  glowB.addColorStop(1, 'rgba(0,229,255,0)');
+  ctx.fillStyle = glowB; ctx.fillRect(x0 - 4, botY + 4, w + 8, 22);
+}
+
+// Biome 3 — Storm: dark churning cloud masses with lightning
+function _wallStormCloud(cx, w, topH, botY) {
+  const x0 = cx - w / 2;
+  const seed = (cx * 9) | 0;
+  const step = 14;
+  // Dark base
+  ctx.fillStyle = '#18182a';
+  ctx.fillRect(x0, 0, w, topH);
+  ctx.fillRect(x0, botY, w, H - botY);
+  // Turbulent bottom edge of top wall
+  ctx.fillStyle = '#26263c';
+  for (let i = 0; i * step < w + step; i++) {
+    const bx = x0 + i * step;
+    const r = 10 + ((seed + i * 23) % 9);
+    ctx.beginPath(); ctx.arc(bx, topH - 2, r, Math.PI, Math.PI * 2); ctx.fill();
+  }
+  // Turbulent top edge of bottom wall
+  for (let i = 0; i * step < w + step; i++) {
+    const bx = x0 + i * step;
+    const r = 10 + ((seed + i * 17) % 9);
+    ctx.beginPath(); ctx.arc(bx, botY + 2, r, 0, Math.PI); ctx.fill();
+  }
+  // Purple-white glow at gap edges
+  const glowT = ctx.createLinearGradient(0, topH - 22, 0, topH);
+  glowT.addColorStop(0, 'rgba(190,180,255,0)');
+  glowT.addColorStop(1, 'rgba(190,180,255,0.28)');
+  ctx.fillStyle = glowT; ctx.fillRect(x0, topH - 22, w, 22);
+  const glowB = ctx.createLinearGradient(0, botY, 0, botY + 22);
+  glowB.addColorStop(0, 'rgba(190,180,255,0.28)');
+  glowB.addColorStop(1, 'rgba(190,180,255,0)');
+  ctx.fillStyle = glowB; ctx.fillRect(x0, botY, w, 22);
+  // Static lightning bolt in top wall
+  if ((seed % 3) === 0 && topH > 45) {
+    ctx.strokeStyle = 'rgba(255,255,200,0.75)';
+    ctx.lineWidth = 1.5;
+    const lx = cx + ((seed % 22) - 11);
+    ctx.beginPath();
+    ctx.moveTo(lx,      topH - 32);
+    ctx.lineTo(lx - 6,  topH - 16);
+    ctx.lineTo(lx + 4,  topH - 16);
+    ctx.lineTo(lx - 5,  topH - 2);
+    ctx.stroke();
+  }
+}
+
+// Biome 4 — Arctic: ice walls with icicles
+function _wallIce(cx, w, topH, botY) {
+  const x0 = cx - w / 2;
+  const seed = (cx * 17) | 0;
+  const iStep = 14;
+  // Ice gradient — top
+  const iceT = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+  iceT.addColorStop(0, '#a8d8ea'); iceT.addColorStop(0.5, '#dff4ff'); iceT.addColorStop(1, '#a8d8ea');
+  ctx.fillStyle = iceT; ctx.fillRect(x0, 0, w, topH);
+  // Horizontal strata
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1;
+  for (let y = 18; y < topH; y += 20) {
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + w, y); ctx.stroke();
+  }
+  // Icicles hanging from bottom of top wall
+  for (let i = 0; i * iStep < w; i++) {
+    const ix = x0 + i * iStep + 7;
+    const ih = 12 + ((seed + i * 19) % 14);
+    ctx.fillStyle = 'rgba(220,245,255,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(ix - 5, topH); ctx.lineTo(ix + 5, topH); ctx.lineTo(ix, topH + ih);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(180,230,255,0.7)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ix - 2, topH + 2); ctx.lineTo(ix - 2, topH + ih * 0.6); ctx.stroke();
+  }
+
+  // Ice gradient — bottom
+  const iceB = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+  iceB.addColorStop(0, '#a8d8ea'); iceB.addColorStop(0.5, '#dff4ff'); iceB.addColorStop(1, '#a8d8ea');
+  ctx.fillStyle = iceB; ctx.fillRect(x0, botY, w, H - botY);
+  // Horizontal strata
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1;
+  for (let y = botY + 18; y < H; y += 20) {
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + w, y); ctx.stroke();
+  }
+  // Icicles pointing up from top of bottom wall
+  for (let i = 0; i * iStep < w; i++) {
+    const ix = x0 + i * iStep + 7;
+    const ih = 12 + ((seed + i * 13) % 14);
+    ctx.fillStyle = 'rgba(220,245,255,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(ix - 5, botY); ctx.lineTo(ix + 5, botY); ctx.lineTo(ix, botY - ih);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(180,230,255,0.7)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(ix - 2, botY - 2); ctx.lineTo(ix - 2, botY - ih * 0.6); ctx.stroke();
+  }
+}
+
+// Biome 5 — Canyon: layered rock walls with jagged edges
+function _wallRock(cx, w, topH, botY) {
+  const x0 = cx - w / 2;
+  const seed = (cx * 13) | 0;
+  const jStep = 12;
+  const strataC = ['rgba(190,110,40,0.28)', 'rgba(90,40,10,0.28)', 'rgba(210,140,70,0.2)'];
+
+  // Rock gradient — top
+  const rT = ctx.createLinearGradient(x0, 0, x0 + w, topH);
+  rT.addColorStop(0, '#7a3410'); rT.addColorStop(0.5, '#bf7030'); rT.addColorStop(1, '#6a2c08');
+  ctx.fillStyle = rT; ctx.fillRect(x0, 0, w, topH);
+  // Strata
+  [0.3, 0.58, 0.82].forEach((f, i) => {
+    ctx.fillStyle = strataC[i];
+    ctx.fillRect(x0, topH * f, w, 8);
+  });
+  // Jagged bottom edge
+  ctx.fillStyle = '#4a1e06';
+  for (let i = 0; i * jStep < w; i++) {
+    const jx = x0 + i * jStep;
+    const jh = 8 + ((seed + i * 29) % 14);
+    ctx.fillRect(jx, topH - jh, jStep - 1, jh);
+  }
+
+  // Rock gradient — bottom
+  const rB = ctx.createLinearGradient(x0, botY, x0 + w, H);
+  rB.addColorStop(0, '#6a2c08'); rB.addColorStop(0.5, '#bf7030'); rB.addColorStop(1, '#7a3410');
+  ctx.fillStyle = rB; ctx.fillRect(x0, botY, w, H - botY);
+  const remH = H - botY;
+  [0.2, 0.5, 0.75].forEach((f, i) => {
+    ctx.fillStyle = strataC[i];
+    ctx.fillRect(x0, botY + remH * f, w, 8);
+  });
+  // Jagged top edge
+  ctx.fillStyle = '#4a1e06';
+  for (let i = 0; i * jStep < w; i++) {
+    const jx = x0 + i * jStep;
+    const jh = 8 + ((seed + i * 23) % 14);
+    ctx.fillRect(jx, botY, jStep - 1, jh);
+  }
+}
+
+// Biome 6 — Space: asteroid mass with purple glow + craters
+function _wallAsteroid(cx, w, topH, botY) {
+  const x0 = cx - w / 2;
+  const seed = (cx * 19) | 0;
+
+  // Dark asteroid body — top
+  ctx.fillStyle = '#09090f';
+  ctx.fillRect(x0, 0, w, topH);
+  // Craters
+  for (let i = 0; i < 4; i++) {
+    const cxr = x0 + ((seed + i * 37) % Math.max(1, w - 10)) + 5;
+    const cyr = ((seed + i * 53) % Math.max(1, topH - 10)) + 5;
+    const cr  = 4 + ((seed + i * 11) % 6);
+    ctx.strokeStyle = 'rgba(130,80,200,0.4)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cxr, cyr, cr, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath(); ctx.arc(cxr, cyr, cr * 0.65, 0, Math.PI * 2); ctx.fill();
+  }
+  // Stars
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  for (let i = 0; i < 5; i++) {
+    const sx = x0 + ((seed + i * 31) % w);
+    const sy = ((seed + i * 43) % Math.max(1, topH));
+    ctx.fillRect(sx, sy, 1.5, 1.5);
+  }
+  // Purple glow + bar — top gap edge
+  const glowT = ctx.createLinearGradient(0, topH - 30, 0, topH - 3);
+  glowT.addColorStop(0, 'rgba(160,55,230,0)');
+  glowT.addColorStop(1, 'rgba(160,55,230,0.55)');
+  ctx.fillStyle = glowT; ctx.fillRect(x0 - 4, topH - 30, w + 8, 27);
+  ctx.fillStyle = '#b050ee'; ctx.fillRect(x0 - 4, topH - 3, w + 8, 3);
+
+  // Dark asteroid body — bottom
+  ctx.fillStyle = '#09090f';
+  ctx.fillRect(x0, botY, w, H - botY);
+  // Craters
+  for (let i = 0; i < 4; i++) {
+    const cxr = x0 + ((seed + i * 41) % Math.max(1, w - 10)) + 5;
+    const cyr = botY + ((seed + i * 59) % Math.max(1, H - botY - 10)) + 5;
+    const cr  = 4 + ((seed + i * 13) % 6);
+    ctx.strokeStyle = 'rgba(130,80,200,0.4)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cxr, cyr, cr, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath(); ctx.arc(cxr, cyr, cr * 0.65, 0, Math.PI * 2); ctx.fill();
+  }
+  // Stars on bottom wall
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  for (let i = 0; i < 5; i++) {
+    const sx = x0 + ((seed + i * 47) % w);
+    const sy = botY + ((seed + i * 61) % Math.max(1, H - botY));
+    ctx.fillRect(sx, sy, 1.5, 1.5);
+  }
+  // Purple glow + bar — bottom gap edge
+  ctx.fillStyle = '#b050ee'; ctx.fillRect(x0 - 4, botY, w + 8, 3);
+  const glowB = ctx.createLinearGradient(0, botY + 3, 0, botY + 30);
+  glowB.addColorStop(0, 'rgba(160,55,230,0.55)');
+  glowB.addColorStop(1, 'rgba(160,55,230,0)');
+  ctx.fillStyle = glowB; ctx.fillRect(x0 - 4, botY + 3, w + 8, 27);
 }
 
 // ── DRAW COIN ─────────────────────────────────────────────
