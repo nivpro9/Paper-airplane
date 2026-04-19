@@ -596,7 +596,7 @@ let player, obstacles, coins, ammoPickups, shieldPickups, particles, bullets, en
 let distance, speed, sessionCoins, ammo;
 let frameId, lastTime;
 let shieldHits, shootCooldown, shootAutoTimer;
-let spawnTimer, coinTimer, ammoTimer, enemyTimer, shieldPickupTimer;
+let spawnTimer, coinTimer, ammoTimer, targetTimer, enemyTimer, shieldPickupTimer;
 let popups = []; // [{text, x, y, alpha, timer, color}]
 let clouds = [], stars = [], bgParticles = [];
 let coinCombo = 0, comboTimer = 0;
@@ -691,6 +691,19 @@ function createPillar() {
 function createFan() {
   const side = Math.random() < 0.5 ? 'top' : 'bottom';
   return { type:'fan', x: W + 40, y: side === 'top' ? H * 0.06 : H * 0.86, side, angle: 0, w: 44, h: 44, windForce: (Math.random() < 0.5 ? 1 : -1) * 2.5 };
+}
+// ── SHOOT TARGETS ─────────────────────────────────────────
+const TARGET_TYPES = [
+  { shape:'star',   color:'#FFD700', coins:5  },
+  { shape:'star',   color:'#FF6B35', coins:8  },
+  { shape:'ufo',    color:'#00E5FF', coins:10 },
+  { shape:'star',   color:'#E040FB', coins:6  },
+];
+function createTarget() {
+  const t = TARGET_TYPES[Math.floor(Math.random() * TARGET_TYPES.length)];
+  const coins = t.coins + Math.floor(currentLevel / 8);
+  return { type:'target', x: W + 50, y: H * 0.12 + Math.random() * H * 0.76,
+    shape: t.shape, color: t.color, coins, r: 22, anim: 0, hp: 1 };
 }
 function createBird() {
   const y = H * 0.1 + Math.random() * H * 0.8;
@@ -1097,6 +1110,7 @@ function initGame(levelNum) {
   enemies = []; enemyBullets = []; popups = [];
   coinCombo = 0; comboTimer = 0; screenShake = 0; lastLightningTime = 0; speedBoostEffect = 0;
   spawnTimer = 1.5; coinTimer = 1.0; ammoTimer = 10 + Math.random() * 6;
+  targetTimer = 8 + Math.random() * 6;
   enemyTimer = currentLevel >= 25 ? 8 + Math.random() * 6 : 99999;
   shieldPickupTimer = currentLevel >= 30 ? 18 + Math.random() * 12 : 99999;
   shootCooldown = 0; shootAutoTimer = 3;
@@ -1290,6 +1304,16 @@ function update(dt) {
   coinTimer -= dt;
   if (coinTimer <= 0) { spawnCoin(); coinTimer = 2.0 + Math.random() * 2.0; }
 
+  // ── SHOOT TARGETS spawn (level 3+ with cannon) ──
+  if (Save.data.upgrades.cannon > 0 && currentLevel >= 3) {
+    targetTimer -= dt;
+    if (targetTimer <= 0) {
+      obstacles.push(createTarget());
+      if (Math.random() < 0.25) obstacles.push(createTarget()); // occasional pair
+      targetTimer = 8 + Math.random() * 7;
+    }
+  }
+
   // Shield pickup spawn (levels 30+, every 18–30s)
   if (currentLevel >= 30) {
     shieldPickupTimer -= dt;
@@ -1338,6 +1362,29 @@ function update(dt) {
         if (Math.sqrt(dx * dx + dy * dy) < obs.r + 20) handleHit();
       }
       return obs.x > -50 && obs.x < W + 50;
+    } else if (obs.type === 'target') {
+      obs.x -= speed * 0.55;
+      obs.anim += dt * 3;
+      // Check bullet hits
+      let hit = false;
+      bullets = bullets.filter(b => {
+        if (Math.sqrt((b.x - obs.x) ** 2 + (b.y - obs.y) ** 2) < obs.r + 8) {
+          hit = true; return false;
+        }
+        return true;
+      });
+      if (hit) {
+        obs.hp--;
+        if (obs.hp <= 0) {
+          sessionCoins += obs.coins;
+          spawnParticles(obs.x, obs.y, obs.color, 20);
+          Snd.play('coin');
+          popups.push({ text: '+' + obs.coins + ' 🪙', x: obs.x, y: obs.y - 30, alpha: 1, timer: 1.2, color: obs.color });
+          return false;
+        }
+        spawnParticles(obs.x, obs.y, obs.color, 6);
+      }
+      return obs.x > -60;
     }
     return true;
   });
@@ -1676,6 +1723,8 @@ function drawObstacle(obs) {
     ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(10,-3,3,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(11,-3,1.5,0,Math.PI*2); ctx.fill();
     ctx.restore();
+  } else if (obs.type === 'target') {
+    drawTarget(obs);
   }
 }
 
@@ -2104,6 +2153,58 @@ function drawShieldPickup(sp) {
   ctx.restore();
 }
 
+
+// ── DRAW TARGET ──────────────────────────────────────────
+function drawTarget(obs) {
+  ctx.save();
+  ctx.translate(obs.x, obs.y);
+  ctx.rotate(obs.anim * 0.8);
+  const r = obs.r;
+
+  // Outer glow
+  const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, r + 12);
+  grd.addColorStop(0, obs.color + '55');
+  grd.addColorStop(1, obs.color + '00');
+  ctx.fillStyle = grd;
+  ctx.beginPath(); ctx.arc(0, 0, r + 12, 0, Math.PI * 2); ctx.fill();
+
+  if (obs.shape === 'ufo') {
+    // UFO body
+    ctx.fillStyle = obs.color;
+    ctx.beginPath(); ctx.ellipse(0, 4, r, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    // UFO dome
+    ctx.fillStyle = obs.color + 'cc';
+    ctx.beginPath(); ctx.ellipse(0, -2, r * 0.55, r * 0.45, 0, Math.PI, Math.PI * 2); ctx.fill();
+    // Windows
+    [-8, 0, 8].forEach(wx => {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.arc(wx, 4, 3.5, 0, Math.PI * 2); ctx.fill();
+    });
+  } else {
+    // Star shape (5 points)
+    ctx.fillStyle = obs.color;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const angle = (i * Math.PI) / 5 - Math.PI / 2;
+      const rad = i % 2 === 0 ? r : r * 0.45;
+      i === 0 ? ctx.moveTo(Math.cos(angle) * rad, Math.sin(angle) * rad)
+              : ctx.lineTo(Math.cos(angle) * rad, Math.sin(angle) * rad);
+    }
+    ctx.closePath(); ctx.fill();
+    // Inner highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath(); ctx.arc(0, -r * 0.25, r * 0.22, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Coin reward label
+  ctx.rotate(-obs.anim * 0.8); // keep text upright
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('+' + obs.coins + '🪙', 1, r + 16);
+  ctx.fillStyle = 'white';
+  ctx.fillText('+' + obs.coins + '🪙', 0, r + 15);
+  ctx.restore();
+}
 
 // ── DRAW POPUP TEXT ───────────────────────────────────────
 function drawPopups() {
