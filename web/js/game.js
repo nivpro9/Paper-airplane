@@ -520,6 +520,7 @@ const Save = {
     currentLevel: 1, tutorialDone: false,
     levelBests: {}, prestige: 0,
     lastSpin: 0, spinShields: 0, spinAmmo: 0,
+    spinSpeed: 0, spinDoubleCoins: 0,
     lastLogin: 0, loginStreak: 0,
   },
   data: null,
@@ -567,6 +568,8 @@ const Save = {
     if (this.data.lastSpin === undefined) this.data.lastSpin = 0;
     if (this.data.spinShields === undefined) this.data.spinShields = 0;
     if (this.data.spinAmmo === undefined) this.data.spinAmmo = 0;
+    if (this.data.spinSpeed === undefined) this.data.spinSpeed = 0;
+    if (this.data.spinDoubleCoins === undefined) this.data.spinDoubleCoins = 0;
     if (this.data.lastLogin === undefined) this.data.lastLogin = 0;
     if (this.data.loginStreak === undefined) this.data.loginStreak = 0;
     // Re-save to populate all storage mechanisms in case one was missing
@@ -1086,13 +1089,40 @@ function initGame(levelNum) {
   // Guard: clamp activeVehicle to valid range
   if (!VEHICLES[Save.data.activeVehicle]) Save.data.activeVehicle = 0;
   shieldHits = upg.shield + (Save.data.activeVehicle === 7 ? 1 : 0); // Large Airliner perk
-  // Apply spin bonuses
+  // Apply spin shield bonus
   if (Save.data.spinShields > 0) { shieldHits += Save.data.spinShields; Save.data.spinShields = 0; Save.save(); }
+
+  // Base speed
   speed = levelData.speed * VEHICLES[Save.data.activeVehicle].speed * (1 + upg.speed * 0.12);
+
+  // ── SPIN BONUSES ──
+  // TURBO: +65% speed for the whole level
+  let turboActive = false;
+  if (Save.data.spinSpeed > 0) {
+    speed *= 1.65;
+    Save.data.spinSpeed = 0;
+    turboActive = true;
+    Save.save();
+  }
+  // DOUBLE COINS flag (read in coin collection)
+  let doubleCoinActive = false;
+  if (Save.data.spinDoubleCoins > 0) {
+    Save.data.spinDoubleCoins = 0;
+    doubleCoinActive = true;
+    Save.save();
+  }
+  // Store on window so update() can read it this session
+  window._turboActive = turboActive;
+  window._doubleCoinActive = doubleCoinActive;
 
   const cap = maxAmmo();
   ammo = cap > 0 ? Math.floor(cap * 0.5) : 0;
-  if (Save.data.spinAmmo > 0 && cap > 0) { ammo = Math.min(cap, ammo + Save.data.spinAmmo); Save.data.spinAmmo = 0; Save.save(); }
+  // FULL AMMO from spin — give maximum regardless of cannon level
+  if (Save.data.spinAmmo > 0) {
+    ammo = cap > 0 ? cap : 20; // if no cannon, still store so hint shows
+    Save.data.spinAmmo = 0;
+    Save.save();
+  }
 
   player = createPlayer();
   landing = null;
@@ -1101,13 +1131,29 @@ function initGame(levelNum) {
 
   initBgEffects(currentBiome);
 
-  // Biome change banner
-  if (currentLevel % 10 === 1 && currentLevel > 1) {
+  // ── SPIN BONUS BANNERS (shown at level start) ──
+  if (turboActive) {
+    biomeBanner.text = '⚡ TURBO ACTIVE — +65% SPEED!';
+    biomeBanner.timer = 3.2;
+    biomeBanner.color = '#FF5722';
+  } else if (doubleCoinActive) {
+    biomeBanner.text = '💰 2× COINS THIS LEVEL!';
+    biomeBanner.timer = 3.2;
+    biomeBanner.color = '#9C27B0';
+  } else if (currentLevel % 10 === 1 && currentLevel > 1) {
+    // Biome change banner
     biomeBanner.text = tf('enteringZone', t('bm' + currentBiome).toUpperCase());
     biomeBanner.timer = 2.5;
+    biomeBanner.color = null;
   } else if (currentLevel === 1) {
     biomeBanner.text = '';
     biomeBanner.timer = 0;
+    biomeBanner.color = null;
+  }
+
+  // ── AMMO TIP: show double-tap hint only when cannon is unlocked and ammo available ──
+  if (cap > 0 && ammo > 0) {
+    tutHints.push({ text: '💥 Double-tap to FIRE!', x: W * 0.5, y: H * 0.72, alpha: 1, timer: 3.5, color: '#FF5722' });
   }
 
   // Tutorial hints (first time on level 1)
@@ -1136,10 +1182,14 @@ function update(dt) {
   // Distance (calibrated: ~10-27 m/s depending on speed level)
   distance += speed * dt * 60 * 0.058;
 
-  // Speed updates slightly in-level
+  // Speed updates slightly in-level (TURBO raises the cap too)
   const upg = Save.data.upgrades;
   const veh = VEHICLES[Save.data.activeVehicle];
-  speed = Math.min(levelData.speed * veh.speed * (1 + upg.speed * 0.12) + distance * 0.0002, levelData.speed * 1.4);
+  const turboCap = window._turboActive ? 1.65 : 1.0;
+  speed = Math.min(
+    levelData.speed * veh.speed * (1 + upg.speed * 0.12) * turboCap + distance * 0.0002,
+    levelData.speed * 1.4 * turboCap
+  );
 
   // ── PHYSICS: hold screen = fly up, release = fall ──
   const ctrl      = veh.control * (1 + upg.control * 0.15);
@@ -1345,12 +1395,13 @@ function update(dt) {
       comboTimer = 3.0;
       const bonus = Math.floor(coinCombo / 3);
       const vehicleBonus = veh.id === 6 ? 2 : 0; // Small Airliner perk
-      const earned = v + bonus + vehicleBonus;
+      const doubleBonus = window._doubleCoinActive ? 1 : 0; // 2× COINS spin prize
+      const earned = (v + bonus + vehicleBonus) * (1 + doubleBonus);
       sessionCoins += earned;
-      spawnParticles(c.x, c.y, '#FFD700', 5);
+      spawnParticles(c.x, c.y, window._doubleCoinActive ? '#E040FB' : '#FFD700', 5);
       Snd.play('coin');
-      const popText = coinCombo >= 3 ? '+' + earned + ' ×' + coinCombo + '!' : '+' + earned;
-      const popColor = coinCombo >= 5 ? '#FF6B35' : coinCombo >= 3 ? '#FFC200' : '#FFD700';
+      const popText = coinCombo >= 3 ? '+' + earned + (window._doubleCoinActive ? ' ×2💰' : ' ×' + coinCombo + '!') : '+' + earned + (window._doubleCoinActive ? ' 💰' : '');
+      const popColor = window._doubleCoinActive ? '#E040FB' : coinCombo >= 5 ? '#FF6B35' : coinCombo >= 3 ? '#FFC200' : '#FFD700';
       popups.push({ text: popText, x: c.x, y: c.y - 18, alpha: 1, timer: 0.9, color: popColor });
       return false;
     }
@@ -1929,8 +1980,9 @@ function drawRunway(rw) {
 
 // ── DRAW BACKGROUND ──────────────────────────────────────
 function drawBackground(t) {
+  if (W < 1 || H < 1) return; // guard: skip draw if canvas has zero size
   const b = BIOMES[currentBiome];
-  const grd = ctx.createLinearGradient(0,0,0,H);
+  const grd = ctx.createLinearGradient(0, 0, 0, Math.max(1, H));
   grd.addColorStop(0, b.sky[0]); grd.addColorStop(0.65, b.sky[1]); grd.addColorStop(1, b.sky[2]);
   ctx.fillStyle=grd; ctx.fillRect(0,0,W,H);
 
@@ -2039,11 +2091,23 @@ function draw(t) {
   // Biome banner
   if (biomeBanner.timer > 0) {
     const a = Math.min(1, biomeBanner.timer) * Math.min(1, biomeBanner.timer / 0.3);
+    const bannerCol = biomeBanner.color || '#FFD700';
     ctx.save();
-    ctx.fillStyle = `rgba(0,0,0,${a * 0.55})`;
-    ctx.fillRect(0, H*0.5 - 32, W, 64);
-    ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = `rgba(255,220,80,${a})`; ctx.fillText(biomeBanner.text, W/2, H*0.5);
+    // Background stripe
+    ctx.fillStyle = `rgba(0,0,0,${a * 0.65})`;
+    ctx.fillRect(0, H * 0.5 - 36, W, 72);
+    // Colored accent line top + bottom
+    ctx.fillStyle = bannerCol;
+    ctx.globalAlpha = a * 0.9;
+    ctx.fillRect(0, H * 0.5 - 36, W, 3);
+    ctx.fillRect(0, H * 0.5 + 33, W, 3);
+    ctx.globalAlpha = 1;
+    // Text
+    ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.strokeStyle = `rgba(0,0,0,${a * 0.8})`; ctx.lineWidth = 5;
+    ctx.strokeText(biomeBanner.text, W / 2, H * 0.5);
+    ctx.fillStyle = `${bannerCol}${Math.round(a * 255).toString(16).padStart(2,'0')}`;
+    ctx.fillText(biomeBanner.text, W / 2, H * 0.5);
     ctx.restore();
   }
 
@@ -2381,6 +2445,9 @@ function buyUpgrade(id) {
 function setupTouch() {
   const gc = document.getElementById('screen-game');
 
+  // Block ALL page scroll/bounce on iOS Safari — must be on document, passive:false
+  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
   // Hold anywhere on screen = fly up; double-tap = shoot (level 5+)
   let lastTapTime = 0;
   gc.addEventListener('touchstart', e => {
@@ -2703,14 +2770,14 @@ function showDailyGiftPopup(streak, coins) {
 
 // ── DAILY SPIN ───────────────────────────────────────────
 const SPIN_PRIZES = [
-  { id:'coins10',  label:'+10 🪙',      color:'#FFD700', weight:30 },
-  { id:'coins30',  label:'+30 🪙',      color:'#FFC200', weight:20 },
-  { id:'coins100', label:'+100 🪙',     color:'#FF9900', weight:10 },
-  { id:'coins250', label:'+250 🪙',     color:'#FF6B35', weight:5  },
-  { id:'ammo',     label:'+10 💥 Ammo', color:'#ff7043', weight:12 },
-  { id:'shield',   label:'🛡 Shield',   color:'#4CAF50', weight:12 },
-  { id:'vehicle',  label:'🎁 FREE PLANE!', color:'#E040FB', weight:4 },
-  { id:'coins50',  label:'+50 🪙',      color:'#FFB300', weight:7  },
+  { id:'coins75',     label:'+75 🪙',         color:'#FFD700', weight:26 },
+  { id:'coins200',    label:'+200 🪙',        color:'#FFC200', weight:16 },
+  { id:'speed',       label:'⚡ TURBO!',       color:'#FF5722', weight:15 },
+  { id:'shield',      label:'🛡 SHIELD ×3',   color:'#4CAF50', weight:13 },
+  { id:'ammo',        label:'💥 FULL AMMO!',  color:'#E91E63', weight:12 },
+  { id:'doublecoins', label:'💰 2× COINS',    color:'#9C27B0', weight:10 },
+  { id:'coins500',    label:'+500 🪙',        color:'#FF6B35', weight:6  },
+  { id:'vehicle',     label:'✈️ FREE PLANE!', color:'#00BCD4', weight:2  },
 ];
 
 function spinAvailable() {
@@ -2819,7 +2886,16 @@ function doSpin() {
     Save.data.lastSpin = Date.now();
     Save.save();
     const resultEl = document.getElementById('spin-result');
-    resultEl.textContent = chosen.label;
+    // Build prize description
+    const prizeDesc = {
+      speed:       '⚡ TURBO active next level!\n+65% speed for the whole run!',
+      shield:      '🛡 3 shields activated!\nYou can take 3 hits!',
+      ammo:        '💥 Full ammo loaded!\nDouble-tap to fire in-game!',
+      doublecoins: '💰 2× COINS next level!\nEvery coin is worth double!',
+      vehicle:     '✈️ JACKPOT! A new plane!',
+    };
+    const desc = prizeDesc[chosen.id] || chosen.label;
+    resultEl.innerHTML = `<span style="font-size:28px">${chosen.label}</span><br><small style="font-size:13px;opacity:0.85">${desc.replace('\n','<br>')}</small>`;
     resultEl.style.color = chosen.color;
     goBtn.textContent = '✓ CLOSE';
     goBtn.disabled = false;
@@ -2834,19 +2910,27 @@ function applySpinPrize(prize) {
     const n = parseInt(prize.id.replace('coins', ''));
     Save.data.coins += n;
   } else if (prize.id === 'shield') {
-    Save.data.spinShields = Math.min(5, (Save.data.spinShields || 0) + 1);
+    // 3 shield hits for next level
+    Save.data.spinShields = Math.min(6, (Save.data.spinShields || 0) + 3);
   } else if (prize.id === 'ammo') {
-    Save.data.spinAmmo = Math.min(20, (Save.data.spinAmmo || 0) + 10);
+    // Full ammo magazine for next level
+    Save.data.spinAmmo = 20; // max ammo, applied at level start
+  } else if (prize.id === 'speed') {
+    // TURBO: +65% speed for the entire next level
+    Save.data.spinSpeed = 1;
+  } else if (prize.id === 'doublecoins') {
+    // All coins collected next level are worth 2×
+    Save.data.spinDoubleCoins = 1;
   } else if (prize.id === 'vehicle') {
+    // Random unowned plane — ultra rare
     const unowned = VEHICLES.filter(v => v.id >= 1 && !Save.data.ownedVehicles.includes(v.id));
     if (unowned.length > 0) {
       const gift = unowned[Math.floor(Math.random() * unowned.length)];
       Save.data.ownedVehicles.push(gift.id);
-      prize.label = gift.emoji + ' ' + gift.name + '!';
+      prize.label = gift.emoji + ' ' + gift.name + ' UNLOCKED!';
     } else {
-      // All vehicles owned — bonus coins instead
-      Save.data.coins += 200;
-      prize.label = '+200 🪙 (all planes owned!)';
+      Save.data.coins += 500;
+      prize.label = '+500 🪙 (all planes owned!)';
     }
   }
   Save.save();
@@ -2878,9 +2962,13 @@ window.addEventListener('load', () => {
 
   window.addEventListener('resize', () => {
     if (gameState === 'playing' || gameState === 'landing') {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      W = canvas.width; H = canvas.height;
+      const newW = canvas.offsetWidth  || W;
+      const newH = canvas.offsetHeight || H;
+      // Guard: never let canvas collapse to 0 — would crash gradient calls on iOS
+      if (newW > 10 && newH > 10) {
+        canvas.width = newW; canvas.height = newH;
+        W = canvas.width; H = canvas.height;
+      }
     }
   });
 
