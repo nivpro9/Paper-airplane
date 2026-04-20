@@ -844,7 +844,7 @@ function createShieldPickup() {
 // ── BOSS ─────────────────────────────────────────────────
 function createBoss() {
   const worldIdx = Math.floor((currentLevel - 1) / 10);
-  const hp = 10 + worldIdx * 8; // 10,18,26,34,42,50,58  (reduced ~33% from before)
+  const hp = 6 + worldIdx * 6; // 6,12,18,24,30,36,42  — beatable with base ammo
   return {
     x: W * 1.15, y: H * 0.5,
     vy: 0, hp, maxHp: hp,
@@ -1155,10 +1155,10 @@ function shoot() {
   if (gameState !== 'playing' || !player?.alive) return;
   if (isFreePlay) return; // no shooting in free play
   const lvl = Save.data.upgrades.cannon || 0;
-  if (lvl === 0 || ammo <= 0 || shootCooldown > 0 || currentLevel < 3) return;
+  if (ammo <= 0 || shootCooldown > 0) return;
   ammo--;
-  // Cooldown per level (0=base,1-6 upgrades) — faster fire rate at higher tiers
-  const cooldowns = [0, 0.90, 0.55, 0.40, 0.30, 0.22, 0.16];
+  // Cooldown per level (0=base has slow cooldown, upgrades speed it up)
+  const cooldowns = [1.4, 0.90, 0.55, 0.40, 0.30, 0.22, 0.16];
   shootCooldown = cooldowns[Math.min(lvl, cooldowns.length - 1)];
   const bulletVx = speed + 380;
   if (lvl >= 5) {
@@ -1635,12 +1635,13 @@ function update(dt) {
     if (Math.sqrt(dx * dx + dy * dy) < 32) {
       ac.collected = true;
       const cap = maxAmmo();
-      const gained = Math.min(3, cap - ammo);
+      const hardMax = cap + 6; // pickups can top up above normal cap (bonus reserve)
+      const gained = Math.min(3, hardMax - ammo);
       if (gained > 0) {
-        ammo = Math.min(ammo + gained, cap);
-        spawnParticles(ac.x, ac.y, '#ffcc02', 12);
+        ammo = Math.min(ammo + gained, hardMax);
+        spawnParticles(ac.x, ac.y, '#00e5ff', 12);
         Snd.play('coin');
-        popups.push({ text: tf('ammoPickupText', gained), x: ac.x, y: ac.y - 24, alpha: 1, timer: 1.4, color: '#ffcc02' });
+        popups.push({ text: tf('ammoPickupText', gained), x: ac.x, y: ac.y - 24, alpha: 1, timer: 1.4, color: '#00e5ff' });
         updateShootBtn();
       }
       return false;
@@ -2546,45 +2547,42 @@ function drawCoin(coin, t) {
   ctx.restore();
 }
 
-// ── DRAW AMMO CRATE (water gun pickup) ───────────────────
+// ── DRAW AMMO PICKUP (missile) ────────────────────────────
 function drawAmmoCrate(ac) {
   ctx.save(); ctx.translate(ac.x, ac.y);
   const bob = Math.sin(ac.anim) * 3;
   ctx.translate(0, bob);
   // Glow
   const grd = ctx.createRadialGradient(0,0,0,0,0,24);
-  grd.addColorStop(0,'rgba(0,200,255,0.30)'); grd.addColorStop(1,'rgba(0,200,255,0)');
+  grd.addColorStop(0,'rgba(255,120,0,0.35)'); grd.addColorStop(1,'rgba(255,120,0,0)');
   ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(0,0,24,0,Math.PI*2); ctx.fill();
-  // Main body block
-  ctx.fillStyle='#00bcd4';
-  ctx.beginPath(); ctx.roundRect(-10,-7,18,12,4); ctx.fill();
-  ctx.strokeStyle='#0097a7'; ctx.lineWidth=1.2;
-  ctx.beginPath(); ctx.roundRect(-10,-7,18,12,4); ctx.stroke();
-  // Barrel (tube to the right)
-  ctx.fillStyle='#00acc1';
-  ctx.beginPath(); ctx.roundRect(7,-4,10,5,2); ctx.fill();
-  ctx.strokeStyle='#0097a7'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(7,-4,10,5,2); ctx.stroke();
-  // Nozzle tip
-  ctx.fillStyle='#e0f7fa';
-  ctx.beginPath(); ctx.arc(17,-1.5,2.5,0,Math.PI*2); ctx.fill();
-  // Handle / grip
-  ctx.fillStyle='#0097a7';
-  ctx.beginPath(); ctx.roundRect(-5,4,8,8,3); ctx.fill();
-  ctx.strokeStyle='#007c91'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(-5,4,8,8,3); ctx.stroke();
-  // Trigger
-  ctx.fillStyle='#e0f7fa';
-  ctx.beginPath(); ctx.moveTo(1,3); ctx.lineTo(3,7); ctx.lineTo(5,7); ctx.lineTo(4,3); ctx.closePath(); ctx.fill();
-  // Animated water drops
-  const t2 = ac.anim;
-  for (let i = 0; i < 3; i++) {
-    const ox = 20 + ((t2 * 55 + i * 13) % 20);
-    const oy = -1.5 + Math.sin(t2 * 4 + i) * 2;
-    const alpha = 1 - (ox - 20) / 20;
-    ctx.fillStyle = `rgba(0,224,255,${(alpha * 0.85).toFixed(2)})`;
-    ctx.beginPath(); ctx.arc(ox, oy, 2 - i * 0.3, 0, Math.PI*2); ctx.fill();
+  // Flame / exhaust (left side, behind body)
+  const fl = ac.anim;
+  for (let i = 0; i < 5; i++) {
+    const foff = (fl * 80 + i * 7) % 14;
+    const fa = 0.7 - foff / 14;
+    ctx.fillStyle = `rgba(255,${120 + i * 20},0,${fa.toFixed(2)})`;
+    ctx.beginPath(); ctx.ellipse(-13 - foff, (i - 2) * 2.2, 3, 2.5, 0, 0, Math.PI*2); ctx.fill();
   }
+  // Missile body (elongated rounded rect, pointing right)
+  const bodyGrd = ctx.createLinearGradient(0,-8,0,8);
+  bodyGrd.addColorStop(0,'#e0e0e0'); bodyGrd.addColorStop(0.5,'#9e9e9e'); bodyGrd.addColorStop(1,'#616161');
+  ctx.fillStyle=bodyGrd;
+  ctx.beginPath(); ctx.roundRect(-12,-5,26,10,5); ctx.fill();
+  ctx.strokeStyle='#424242'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(-12,-5,26,10,5); ctx.stroke();
+  // Red warhead nose cone
+  ctx.fillStyle='#e53935';
+  ctx.beginPath(); ctx.moveTo(14,-5); ctx.lineTo(22,0); ctx.lineTo(14,5); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#b71c1c'; ctx.lineWidth=0.8;
+  ctx.beginPath(); ctx.moveTo(14,-5); ctx.lineTo(22,0); ctx.lineTo(14,5); ctx.closePath(); ctx.stroke();
+  // Yellow stripe in the middle
+  ctx.fillStyle='#FFD700';
+  ctx.beginPath(); ctx.roundRect(0,-5,5,10,1); ctx.fill();
+  // Top + bottom fins (at tail)
+  ctx.fillStyle='#FF7043';
+  ctx.beginPath(); ctx.moveTo(-12,-5); ctx.lineTo(-18,-12); ctx.lineTo(-7,-5); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-12,5); ctx.lineTo(-18,12); ctx.lineTo(-7,5); ctx.closePath(); ctx.fill();
   ctx.restore();
 }
 
@@ -3499,13 +3497,13 @@ function renderLevelSelect() {
       const bossCrown = isBoss ? '<span class="lv-boss-crown">⚔️</span>' : '';
       const titleStr = ` title="Level ${lv.id}"`;
 
+      const bossTag = isBoss ? `<div class="lv-boss-tag">⚔️ BOSS</div>` : '';
       if (locked) {
-        return `<div class="lv-bubble locked${bossClass}"${titleStr}>${bossCrown}<span class="lv-lock-icon">🔒</span><span class="lv-lock-num">${lv.id}</span></div>`;
+        return `<div class="lv-bubble-wrap">${bossTag}<div class="lv-bubble locked${bossClass}"${titleStr}>${bossCrown}<span class="lv-lock-icon">🔒</span><span class="lv-lock-num">${lv.id}</span></div></div>`;
       } else if (done) {
-        return `<div class="lv-bubble done${bossClass}"${titleStr} onclick="startLevelFromSelect(${lv.id})">${bossCrown}✓</div>`;
+        return `<div class="lv-bubble-wrap">${bossTag}<div class="lv-bubble done${bossClass}"${titleStr} onclick="startLevelFromSelect(${lv.id})">${bossCrown}✓</div></div>`;
       } else {
-        // active (current level)
-        return `<div class="lv-bubble current${bossClass}"${titleStr} onclick="startLevelFromSelect(${lv.id})">${bossCrown}${lv.id}</div>`;
+        return `<div class="lv-bubble-wrap">${bossTag}<div class="lv-bubble current${bossClass}"${titleStr} onclick="startLevelFromSelect(${lv.id})">${bossCrown}${lv.id}</div></div>`;
       }
     }).join('');
 

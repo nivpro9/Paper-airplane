@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<link rel="stylesheet" href="css/style.css?v=27">
+<link rel="stylesheet" href="css/style.css?v=28">
 </head>
 <body>
 
@@ -52,17 +52,46 @@
         <span class="tut-step-icon">🟩</span>
         <span data-i18n-html="tut2">Fly through the <b>gaps</b> in the pillars — don't crash!</span>
       </div>
-      <div class="tut-step">
+
+      <div class="tut-section-title">✅ COLLECT THESE</div>
+      <div class="tut-step tut-good">
         <span class="tut-step-icon">🪙</span>
-        <span data-i18n-html="tut4">Grab <b>coins</b> to spend on vehicles and upgrades</span>
+        <span><b>Coins</b> — collect them to buy vehicles &amp; upgrades</span>
       </div>
-      <div class="tut-step">
+      <div class="tut-step tut-good">
         <span class="tut-step-icon">🎁</span>
-        <span data-i18n-html="tut_box">Collect <b>surprise boxes</b> for coins, shields and diamonds!</span>
+        <span><b>Surprise boxes</b> — random reward: coins, shield or diamonds!</span>
       </div>
+      <div class="tut-step tut-good">
+        <span class="tut-step-icon">🛡️</span>
+        <span><b>Shield</b> — absorbs one crash so you survive!</span>
+      </div>
+      <div class="tut-step tut-good">
+        <span class="tut-step-icon">🚀</span>
+        <span><b>Missiles</b> — ammo for your gun, tap 🔫 button to shoot!</span>
+      </div>
+
+      <div class="tut-section-title">☠️ AVOID THESE</div>
+      <div class="tut-step tut-bad">
+        <span class="tut-step-icon">🟫</span>
+        <span><b>Pillars</b> — crashing into them ends your flight</span>
+      </div>
+      <div class="tut-step tut-bad">
+        <span class="tut-step-icon">🔴</span>
+        <span><b>Red spike balls</b> — deadly! Shoot them to destroy &amp; earn coins</span>
+      </div>
+      <div class="tut-step tut-bad">
+        <span class="tut-step-icon">🚁</span>
+        <span><b>Enemy drones &amp; missiles</b> — shoot them or dodge!</span>
+      </div>
+
       <div class="tut-step">
         <span class="tut-step-icon">🛬</span>
         <span data-i18n-html="tut5">Reach the <b>distance goal</b> — then fly onto the <b>runway</b> to land!</span>
+      </div>
+      <div class="tut-step">
+        <span class="tut-step-icon">⚔️</span>
+        <span>Every <b>10th level</b> is a <b>BOSS</b> — stock up on ammo and dodge its shots!</span>
       </div>
     </div>
     <div class="tut-demo-note" data-i18n="tutDemoNote">👇 Try it yourself in the demo below!</div>
@@ -99,8 +128,8 @@
     <div class="stats-row">
       <div class="stat"><span id="menu-level">LVL 1</span></div>
     </div>
-    <button id="freePlayBtn" class="btn-free-play">✈️ MY FLIGHT <span id="fp-best-badge" class="fp-best-badge"></span></button>
     <button id="playBtn" class="btn-play" data-i18n="play">PLAY</button>
+    <button id="freePlayBtn" class="btn-free-play">✈️ MY FLIGHT <span id="fp-best-badge" class="fp-best-badge"></span></button>
     <button id="levelsBtn" class="btn-levels" data-i18n="levelsBtn">🗺️ LEVELS</button>
     <button id="shopBtn" class="btn-upgrades" data-i18n="upgradesMenu">⚙️ UPGRADES</button>
     <button id="spinBtn" class="btn-spin" onclick="showSpin()">🎰 DAILY SPIN <span id="spin-badge" class="spin-badge hidden">!</span><span id="spin-countdown" class="spin-countdown"></span></button>
@@ -265,7 +294,7 @@
   </div>
 </div>
 
-<script src="js/game.js?v=44"></script>
+<script src="js/game.js?v=45"></script>
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
