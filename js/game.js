@@ -137,6 +137,11 @@ const LANGS = {
     landHere:'LAND HERE',
     shieldPickupText:'🛡 +SHIELD!',
     active:'ACTIVE', owned:'OWNED',
+    bossIncoming:'⚔️ BOSS INCOMING!',
+    ammoFull:'AMMO FULL!',
+    ammoPickupText:'+{0} ammo!',
+    surpriseBox:'Surprise Box',
+    cannonTutHint:'Collect ammo boxes for your cannon!',
   }},
   it: { name:'Italiano', flag:'🇮🇹', dir:'ltr', t:{
     play:'GIOCA', levelsBtn:'🗺️ LIVELLI', upgradesMenu:'⚙️ MIGLIORIE', upgradesBtn:'🔧 MIGLIORIE',
@@ -183,6 +188,12 @@ const LANGS = {
     allCompleteText:'🌟 Hai completato tutti i 70 livelli! Inizia il giro prestigio...',
     landHere:'ATTERRA QUI',
     shieldPickupText:'🛡 +SCUDO!',
+    bossIncoming:'⚔️ BOSS IN ARRIVO!',
+    ammoFull:'MUNIZIONI PIENE!',
+    ammoPickupText:'+{0} munizioni!',
+    surpriseBox:'Scatola Sorpresa',
+    cannonTutHint:'Raccogli munizioni per il cannone!',
+    active:'ATTIVO', owned:'ACQUISTATO',
   }},
   fr: { name:'Français', flag:'🇫🇷', dir:'ltr', t:{
     play:'JOUER', levelsBtn:'🗺️ NIVEAUX', upgradesMenu:'⚙️ AMÉLIORATIONS', upgradesBtn:'🔧 AMÉLIORATIONS',
@@ -229,6 +240,12 @@ const LANGS = {
     allCompleteText:'🌟 Vous avez complété les 70 niveaux! Démarrage du run prestige...',
     landHere:'ATTERRIR ICI',
     shieldPickupText:'🛡 +BOUCLIER!',
+    bossIncoming:'⚔️ BOSS EN APPROCHE!',
+    ammoFull:'MUNITIONS PLEINES!',
+    ammoPickupText:'+{0} munitions!',
+    surpriseBox:'Boîte Surprise',
+    cannonTutHint:'Collectez des munitions pour le canon!',
+    active:'ACTIF', owned:'ACQUIS',
   }},
   ru: { name:'Русский', flag:'🇷🇺', dir:'ltr', t:{
     play:'ИГРАТЬ', levelsBtn:'🗺️ УРОВНИ', upgradesMenu:'⚙️ УЛУЧШЕНИЯ', upgradesBtn:'🔧 УЛУЧШЕНИЯ',
@@ -275,6 +292,12 @@ const LANGS = {
     allCompleteText:'🌟 Вы прошли все 70 уровней! Начинается престижный забег...',
     landHere:'ПРИЗЕМЛИСЬ ЗДЕСЬ',
     shieldPickupText:'🛡 +ЩИТ!',
+    bossIncoming:'⚔️ БОСС ПРИБЛИЖАЕТСЯ!',
+    ammoFull:'ПАТРОНЫ ПОЛНЫ!',
+    ammoPickupText:'+{0} патронов!',
+    surpriseBox:'Сюрприз-ящик',
+    cannonTutHint:'Собирайте патроны для пушки!',
+    active:'АКТИВНО', owned:'КУПЛЕНО',
   }},
   ja: { name:'日本語', flag:'🇯🇵', dir:'ltr', t:{
     play:'プレイ', levelsBtn:'🗺️ レベル', upgradesMenu:'⚙️ アップグレード', upgradesBtn:'🔧 アップグレード',
@@ -321,6 +344,12 @@ const LANGS = {
     allCompleteText:'🌟 全70レベルクリア！プレステージラン開始...',
     landHere:'ここに着陸',
     shieldPickupText:'🛡 +シールド!',
+    bossIncoming:'⚔️ ボスが来る!',
+    ammoFull:'弾薬満タン!',
+    ammoPickupText:'+{0}弾薬!',
+    surpriseBox:'サプライズボックス',
+    cannonTutHint:'弾薬箱を集めよう!',
+    active:'使用中', owned:'購入済',
   }},
   zh: { name:'中文', flag:'🇨🇳', dir:'ltr', t:{
     play:'开始', levelsBtn:'🗺️ 关卡', upgradesMenu:'⚙️ 升级', upgradesBtn:'🔧 升级',
@@ -367,6 +396,12 @@ const LANGS = {
     allCompleteText:'🌟 你完成了所有70关！开始声望挑战...',
     landHere:'在此降落',
     shieldPickupText:'🛡 +护盾!',
+    bossIncoming:'⚔️ 首领来袭!',
+    ammoFull:'弹药已满!',
+    ammoPickupText:'+{0}弹药!',
+    surpriseBox:'惊喜盒子',
+    cannonTutHint:'收集弹药箱为大炮充能!',
+    active:'使用中', owned:'已购买',
   }},
   he: { name:'עברית', flag:'🇮🇱', dir:'rtl', t:{
     play:'שחק', levelsBtn:'🗺️ שלבים', upgradesMenu:'⚙️ שדרוגים', upgradesBtn:'🔧 שדרוגים',
@@ -413,6 +448,12 @@ const LANGS = {
     allCompleteText:'🌟 סיימת את כל 70 השלבים! מתחיל ריצת יוקרה...',
     landHere:'נחת כאן',
     shieldPickupText:'🛡 +מגן!',
+    bossIncoming:'⚔️ הבוס מגיע!',
+    ammoFull:'תחמושת מלאה!',
+    ammoPickupText:'+{0} תחמושת!',
+    surpriseBox:'קופסאת הפתעה',
+    cannonTutHint:'אסוף קופסאות תחמושת לתותח!',
+    active:'פעיל', owned:'נרכש',
   }},
   ar: { name:'العربية', flag:'🇸🇦', dir:'rtl', t:{
     play:'العب', levelsBtn:'🗺️ مستويات', upgradesMenu:'⚙️ تحسينات', upgradesBtn:'🔧 تحسينات',
@@ -459,6 +500,12 @@ const LANGS = {
     allCompleteText:'🌟 أكملت جميع المستويات الـ70! بدء جولة المكانة...',
     landHere:'الهبوط هنا',
     shieldPickupText:'🛡 +درع!',
+    bossIncoming:'⚔️ الرئيس قادم!',
+    ammoFull:'الذخيرة ممتلئة!',
+    ammoPickupText:'+{0} ذخيرة!',
+    surpriseBox:'صندوق المفاجأة',
+    cannonTutHint:'اجمع صناديق الذخيرة للمدفع!',
+    active:'نشط', owned:'مكتسب',
   }},
 };
 
@@ -490,6 +537,12 @@ function applyLang() {
   if (Save.data) {
     document.getElementById('menu-level').textContent = t('lvl') + ' ' + Save.data.currentLevel;
   }
+  // Apply RTL direction to HTML elements for Hebrew and Arabic
+  const dir = (LANGS[currentLang] && LANGS[currentLang].dir) || 'ltr';
+  document.getElementById('screen-revive').setAttribute('dir', dir);
+  document.getElementById('screen-menu').setAttribute('dir', dir);
+  document.getElementById('screen-levelcomplete').setAttribute('dir', dir);
+  document.body.style.direction = dir;
 }
 
 function setLang(code) {
@@ -736,6 +789,10 @@ function createBird() {
   const y = H * 0.1 + Math.random() * H * 0.8;
   const dir = Math.random() < 0.5 ? 1 : -1;
   return { type:'bird', x: dir > 0 ? -40 : W + 40, y, vx: dir * (2 + Math.random() * 2), wing: 0, r: 18 };
+}
+function createSpikeBall() {
+  const y = H * 0.15 + Math.random() * H * 0.7;
+  return { type:'spikeball', x: W + 40, y, baseY: y, r: 18, anim: Math.random() * Math.PI * 2, vBounce: (Math.random() < 0.5 ? 1 : -1) };
 }
 
 // ── AMMO PICKUP ──────────────────────────────────────────
@@ -1327,9 +1384,15 @@ function update(dt) {
   if (spawnTimer <= 0) {
     const r = Math.random();
     const fc = levelData.fanChance, bc = levelData.birdChance;
-    if (r < 1 - fc - bc) obstacles.push(createPillar());
-    else if (r < 1 - bc) obstacles.push(createFan());
-    else obstacles.push(createBird());
+    const sc = currentLevel >= 5 ? Math.min(0.10, (currentLevel - 5) * 0.007) : 0;
+    if (!isFreePlay && r < sc) {
+      obstacles.push(createSpikeBall());
+    } else {
+      const r2 = Math.random();
+      if (r2 < 1 - fc - bc) obstacles.push(createPillar());
+      else if (r2 < 1 - bc) obstacles.push(createFan());
+      else obstacles.push(createBird());
+    }
     spawnTimer = levelData.spawnInterval;
   }
 
@@ -1384,7 +1447,7 @@ function update(dt) {
         // Tutorial: gap cleared
         if (!Save.data.tutorialDone && tutPhase === 1 && !isFreePlay) {
           tutPhase = 2;
-          tutHints.push({ text: 'Collect ammo boxes for your cannon!', x: W * 0.5, y: H * 0.35, alpha: 1, timer: 4 });
+          tutHints.push({ text: t('cannonTutHint'), x: W * 0.5, y: H * 0.35, alpha: 1, timer: 4 });
         }
       }
       // Bullets can destroy pillars — check if any bullet hits the pillar body
@@ -1466,6 +1529,16 @@ function update(dt) {
         spawnParticles(obs.x, obs.y, obs.color, 6);
       }
       return obs.x > -60;
+    } else if (obs.type === 'spikeball') {
+      obs.x -= speed * 0.85;
+      obs.anim += dt * 2.2;
+      obs.y = obs.baseY + Math.sin(obs.anim * obs.vBounce) * 55;
+      // Collision with player
+      if (player.alive && !player.invincible) {
+        const dx = player.x - obs.x, dy = player.y - obs.y;
+        if (Math.sqrt(dx*dx+dy*dy) < obs.r + 16) { handleHit(); }
+      }
+      return obs.x > -60;
     }
     return true;
   });
@@ -1501,7 +1574,7 @@ function update(dt) {
         ammo = Math.min(ammo + gained, cap);
         spawnParticles(ac.x, ac.y, '#ffcc02', 12);
         Snd.play('coin');
-        popups.push({ text: '+' + gained + ' ammo', x: ac.x, y: ac.y - 24, alpha: 1, timer: 1.4, color: '#ffcc02' });
+        popups.push({ text: tf('ammoPickupText', gained), x: ac.x, y: ac.y - 24, alpha: 1, timer: 1.4, color: '#ffcc02' });
         updateShootBtn();
       }
       return false;
@@ -1517,9 +1590,12 @@ function update(dt) {
     const dx = player.x - mb.x, dy = player.y - mb.y;
     if (Math.sqrt(dx * dx + dy * dy) < 34) {
       mb.collected = true;
-      _openMysteryBox(mb.x, mb.y);
+      _openSurpriseBox(mb.x, mb.y);
       return false;
     }
+    // Rattle when player is close
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    mb.rattle = dist < 130 ? Math.sin(mb.anim * 18) * 3 : 0;
     return mb.x > -40;
   });
 
@@ -1634,7 +1710,7 @@ function update(dt) {
       const bCap = maxAmmo();
       if (bCap > 0) { ammo = bCap; updateShootBtn(); }
       boss = createBoss();
-      popups.push({ text: '⚔️ BOSS INCOMING!', x: W * 0.5, y: H * 0.38, alpha: 1, timer: 2.5, color: '#FF4444' });
+      popups.push({ text: t('bossIncoming'), x: W * 0.5, y: H * 0.38, alpha: 1, timer: 2.5, color: '#FF4444' });
       screenShake = 0.8;
       Snd.play('landing_start');
     } else {
@@ -1676,10 +1752,14 @@ function updateHUD() {
     document.getElementById('hud-goal').textContent = best > 0 ? '🏆 ' + best + 'm' : '';
     // In free play: hide the level panel entirely
     if (hudLeft) hudLeft.style.display = 'none';
+    const hudCenter = document.querySelector('.hud-center');
+    if (hudCenter) hudCenter.style.maxWidth = '220px';
   } else {
     document.getElementById('hud-goal').textContent = '/ ' + levelData.goal + 'm';
     document.getElementById('hud-level').textContent = currentLevel;
     if (hudLeft) hudLeft.style.display = '';
+    const hudCenterN = document.querySelector('.hud-center');
+    if (hudCenterN) hudCenterN.style.maxWidth = '';
   }
   document.getElementById('hud-coins').textContent = Save.data.coins + sessionCoins;
 
@@ -1878,6 +1958,8 @@ function drawObstacle(obs) {
     ctx.restore();
   } else if (obs.type === 'target') {
     drawTarget(obs);
+  } else if (obs.type === 'spikeball') {
+    drawSpikeBall(obs);
   }
 }
 
@@ -2400,8 +2482,8 @@ function drawAmmoCrate(ac) {
   ctx.restore();
 }
 
-// ── MYSTERY BOX REWARD ───────────────────────────────────
-function _openMysteryBox(x, y) {
+// ── SURPRISE BOX REWARD ──────────────────────────────────
+function _openSurpriseBox(x, y) {
   const roll = Math.random();
   let rewardText, rewardColor;
   if (roll < 0.40) {
@@ -2423,7 +2505,7 @@ function _openMysteryBox(x, y) {
       const gained = Math.min(4, cap - ammo);
       ammo = Math.min(ammo + gained, cap);
       updateShootBtn();
-      rewardText = gained > 0 ? '+' + gained + ' AMMO!' : 'AMMO FULL'; rewardColor = '#ffcc02';
+      rewardText = gained > 0 ? tf('ammoPickupText', gained) : t('ammoFull'); rewardColor = '#ffcc02';
     } else {
       const c = 50; sessionCoins += c;
       rewardText = '+' + c + ' 🪙'; rewardColor = '#FFD700';
@@ -2445,9 +2527,10 @@ function _openMysteryBox(x, y) {
   popups.push({ text: rewardText, x, y: y - 30, alpha: 1, timer: 2.2, color: rewardColor });
 }
 
-// ── DRAW MYSTERY BOX ─────────────────────────────────────
-function drawMysteryBox(mb) {
+// ── DRAW SURPRISE BOX ────────────────────────────────────
+function drawSurpriseBox(mb) {
   ctx.save(); ctx.translate(mb.x, mb.y);
+  ctx.translate(mb.rattle || 0, 0);
   const bob = Math.sin(mb.anim) * 4;
   ctx.translate(0, bob);
   const pulse = 0.5 + 0.5 * Math.sin(mb.anim * 2.5);
@@ -2458,20 +2541,20 @@ function drawMysteryBox(mb) {
   ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(0,0,28,0,Math.PI*2); ctx.fill();
   // Box body
   const sz = 20;
-  ctx.fillStyle = '#6A1B9A';
+  ctx.fillStyle = '#C62828';
   ctx.beginPath(); ctx.roundRect(-sz, -sz, sz*2, sz*2, 5); ctx.fill();
-  ctx.strokeStyle = `rgba(220,140,255,${0.7 + pulse * 0.3})`; ctx.lineWidth = 2;
+  ctx.strokeStyle = `rgba(255,180,80,${0.7 + pulse * 0.3})`; ctx.lineWidth = 2;
   ctx.stroke();
   // Lid line
   ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(-sz, -3); ctx.lineTo(sz, -3); ctx.stroke();
   // Bow ribbon
-  ctx.strokeStyle = '#E040FB'; ctx.lineWidth = 2;
+  ctx.strokeStyle = '#FF8F00'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(-sz, -sz); ctx.lineTo(sz, sz); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(sz, -sz); ctx.lineTo(-sz, sz); ctx.stroke();
-  // Question mark
+  // Exclamation mark
   ctx.fillStyle = 'white'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('?', 0, 1);
+  ctx.fillText('!', 0, 1);
   ctx.restore();
 }
 
@@ -2565,10 +2648,42 @@ function drawTarget(obs) {
   ctx.restore();
 }
 
+// ── DRAW SPIKE BALL ──────────────────────────────────────
+function drawSpikeBall(obs) {
+  ctx.save();
+  ctx.translate(obs.x, obs.y);
+  const rot = obs.anim * 1.5;
+  ctx.rotate(rot);
+  // Glow
+  const grd = ctx.createRadialGradient(0,0,0,0,0,obs.r + 10);
+  grd.addColorStop(0,'rgba(220,50,50,0.3)'); grd.addColorStop(1,'rgba(220,50,50,0)');
+  ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(0,0,obs.r+10,0,Math.PI*2); ctx.fill();
+  // Core ball
+  ctx.fillStyle = '#b71c1c';
+  ctx.beginPath(); ctx.arc(0,0,obs.r,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#ff5252'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Spikes
+  const numSpikes = 8;
+  ctx.fillStyle = '#ff1744';
+  for (let i = 0; i < numSpikes; i++) {
+    const a = (i / numSpikes) * Math.PI * 2;
+    const innerR = obs.r - 2, outerR = obs.r + 9;
+    const aL = a - 0.18, aR = a + 0.18;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(aL)*innerR, Math.sin(aL)*innerR);
+    ctx.lineTo(Math.cos(a)*outerR, Math.sin(a)*outerR);
+    ctx.lineTo(Math.cos(aR)*innerR, Math.sin(aR)*innerR);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
 // ── DRAW POPUP TEXT ───────────────────────────────────────
 function drawPopups() {
   popups.forEach(p => {
     ctx.save();
+    const isRTL = LANGS[currentLang] && LANGS[currentLang].dir === 'rtl';
+    if (isRTL) ctx.direction = 'rtl';
     ctx.globalAlpha = p.alpha;
     ctx.font = 'bold 18px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 4;
@@ -2700,8 +2815,8 @@ function drawBackground(t) {
   // Stars
   if (b.stars) {
     stars.forEach(s => {
-      const a = 0.4 + 0.5 * Math.sin(t * 1.2 + s.phase);
-      ctx.fillStyle = b.nebula ? `rgba(180,140,255,${a*0.7})` : `rgba(255,255,255,${a*0.8})`;
+      const a = 0.25 + 0.3 * Math.sin(t * 1.2 + s.phase);
+      ctx.fillStyle = b.nebula ? `rgba(180,140,255,${a*0.4})` : `rgba(255,255,255,${a*0.45})`;
       ctx.fillRect(s.x, s.y, s.r, s.r);
     });
     if (b.nebula) {
@@ -2755,10 +2870,10 @@ function drawBackground(t) {
   // Snow / Rain particles
   bgParticles.forEach(p => {
     if (b.snow) {
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
     } else if (b.rain) {
-      ctx.strokeStyle = 'rgba(150,180,220,0.5)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(150,180,220,0.22)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - 3, p.y + p.len); ctx.stroke();
     }
   });
@@ -2782,7 +2897,7 @@ function draw(elapsed) {
   // Coins, ammo, mystery boxes, shields, bullets, enemies, obstacles
   coins.forEach(c => drawCoin(c, elapsed));
   ammoPickups.forEach(ac => drawAmmoCrate(ac));
-  mysteryBoxes.forEach(mb => drawMysteryBox(mb));
+  mysteryBoxes.forEach(mb => drawSurpriseBox(mb));
   shieldPickups.forEach(sp => drawShieldPickup(sp));
   bullets.forEach(b => drawBullet(b));
   enemies.forEach(en => drawEnemy(en));
@@ -3216,7 +3331,7 @@ function lcBuyAmmo() {
   const cap = maxAmmo();
   if (cap <= 0) return; // no cannon
   if (ammo >= cap) {
-    popups.push({ text: 'AMMO FULL!', x: W * 0.5, y: H * 0.5, alpha: 1, timer: 1.2, color: '#FF6B35' });
+    popups.push({ text: t('ammoFull'), x: W * 0.5, y: H * 0.5, alpha: 1, timer: 1.2, color: '#FF6B35' });
     return;
   }
   const totalCoins = Save.data.coins; // sessionCoins already saved at level complete
@@ -4152,12 +4267,6 @@ window.addEventListener('load', () => {
   document.getElementById('goMenuBtn2').addEventListener('click', () => {
     _finalizeGameOver();
     showMenu();
-  });
-  // Legacy giveup removed — kept as no-op guard
-  const giveupBtn = document.getElementById('revive-giveup-btn');
-  if (giveupBtn) giveupBtn.addEventListener('click', () => {
-    if (reviveTimer) { clearInterval(reviveTimer); reviveTimer = null; }
-    startNewGameFromDeath();
   });
 
   // Ammo buy on death screen (50 coins per bullet)
