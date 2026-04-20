@@ -172,6 +172,12 @@
       <button id="goMenuBtn" class="btn-revive-menu" data-i18n="menu">MENU</button>
     </div>
 
+    <!-- Buy ammo row — shown only when cannon unlocked, not free play -->
+    <div id="death-ammo-shop" class="death-ammo-shop hidden">
+      <button class="death-ammo-btn" id="death-buy-ammo">+1 ammo · 50 🪙</button>
+      <span id="death-ammo-count" class="death-ammo-count">0</span>
+    </div>
+
     <!-- ENDED section: shown when revives are exhausted -->
     <div id="death-ended" class="hidden">
       <button id="retryBtn2" class="btn-revive-newgame" data-i18n="newGame">NEW GAME</button>
@@ -257,7 +263,7 @@
   </div>
 </div>
 
-<script src="js/game.js?v=35"></script>
+<script src="js/game.js?v=36"></script>
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});

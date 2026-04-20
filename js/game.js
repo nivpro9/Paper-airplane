@@ -58,7 +58,7 @@ const LEVELS = generateLevels();
 const VEHICLES = [
   { id:0, name:'Paper Plane',     emoji:'✉️',  cost:0,     levelReq:1,  speed:1.0,  control:1.0,  color:'#ffffff', landing:'strip',    perk:'Standard all-rounder'                          },
   { id:1, name:'Upgraded Paper',  emoji:'📄',  cost:135,   levelReq:3,  speed:1.15, control:1.1,  color:'#e3f2fd', landing:'strip',    perk:'🧲 Coin magnet range +40%'                     },
-  { id:2, name:'Drone',           emoji:'🚁',  cost:360,   levelReq:7,  speed:0.95, control:1.7,  color:'#90caf9', landing:'helipad',  perk:'🎯 Ultra-precise hover — gravity halved'        },
+  { id:2, name:'Drone',           emoji:'🚁',  cost:360,   levelReq:7,  speed:0.95, control:1.1,  color:'#90caf9', landing:'helipad',  perk:'🎯 Precise hover — gravity halved'              },
   { id:3, name:'Light Plane',     emoji:'🛩️', cost:810,   levelReq:12, speed:1.3,  control:1.2,  color:'#4fc3f7', landing:'runway',   perk:'⚡ Aerobatic — tighter turns'                   },
   { id:4, name:'Propeller Plane', emoji:'✈️',  cost:1620,  levelReq:18, speed:1.5,  control:1.15, color:'#ffd54f', landing:'runway',   perk:'💨 Fan gusts reduced by 60%'                   },
   { id:5, name:'Rocket',          emoji:'🚀',  cost:2880,  levelReq:25, speed:2.0,  control:0.85, color:'#ff7043', landing:'pad',      perk:'🔥 Fire trail — hold for speed burst'           },
@@ -614,7 +614,8 @@ const Save = {
 // ── GAME STATE ───────────────────────────────────────────
 let canvas, ctx, W, H;
 let gameState = 'menu'; // menu | playing | landing | levelcomplete | dead | shop
-let player, obstacles, coins, ammoPickups, shieldPickups, particles, bullets, enemies, enemyBullets;
+let player, obstacles, coins, ammoPickups, mysteryBoxes, shieldPickups, particles, bullets, enemies, enemyBullets;
+let mysteryBoxTimer;
 let distance, speed, sessionCoins, ammo;
 let frameId, lastTime;
 let shieldHits, shootCooldown, shootAutoTimer;
@@ -1136,8 +1137,9 @@ function initGame(levelNum) {
   AdManager.resetGame();
   _resetFinalizeGuard();
   distance = 0; sessionCoins = 0;
-  obstacles = []; coins = []; ammoPickups = []; shieldPickups = []; particles = []; bullets = [];
+  obstacles = []; coins = []; ammoPickups = []; mysteryBoxes = []; shieldPickups = []; particles = []; bullets = [];
   enemies = []; enemyBullets = []; popups = [];
+  mysteryBoxTimer = 30 + Math.random() * 20;
   coinCombo = 0; comboTimer = 0; screenShake = 0; lastLightningTime = 0; speedBoostEffect = 0;
   spawnTimer = 1.5; coinTimer = 1.0; ammoTimer = 10 + Math.random() * 6;
   targetTimer = 8 + Math.random() * 6;
@@ -1353,7 +1355,25 @@ function update(dt) {
     }
   }
 
-  const magnetRange = (80 + upg.magnet * 50) * (veh.id === 1 ? 1.4 : 1.0); // Upgraded Paper perk
+  // Ammo crate spawn (when cannon unlocked, not in free play)
+  if (Save.data.upgrades.cannon > 0 && !isFreePlay) {
+    ammoTimer -= dt;
+    if (ammoTimer <= 0) {
+      ammoPickups.push({ x: W + 30, y: H * 0.15 + Math.random() * H * 0.7, anim: 0 });
+      ammoTimer = 12 + Math.random() * 8;
+    }
+  }
+
+  // Mystery box spawn (every 30–50s, any mode, level 3+)
+  if (currentLevel >= 3 || isFreePlay) {
+    mysteryBoxTimer -= dt;
+    if (mysteryBoxTimer <= 0) {
+      mysteryBoxes.push({ x: W + 30, y: H * 0.15 + Math.random() * H * 0.7, anim: 0 });
+      mysteryBoxTimer = 30 + Math.random() * 20;
+    }
+  }
+
+  const magnetRange = (60 + upg.magnet * 38) * (veh.id === 1 ? 1.3 : 1.0); // Upgraded Paper perk
 
   // ── UPDATE OBSTACLES ──
   obstacles = obstacles.filter(obs => {
@@ -1362,7 +1382,7 @@ function update(dt) {
       if (!obs.scored && obs.x < player.x) {
         obs.scored = true;
         // Tutorial: gap cleared
-        if (!Save.data.tutorialDone && tutPhase === 1) {
+        if (!Save.data.tutorialDone && tutPhase === 1 && !isFreePlay) {
           tutPhase = 2;
           tutHints.push({ text: 'Collect ammo boxes for your cannon!', x: W * 0.5, y: H * 0.35, alpha: 1, timer: 4 });
         }
@@ -1467,13 +1487,49 @@ function update(dt) {
     return sp.x > -40;
   });
 
+  // ── UPDATE AMMO PICKUPS ──
+  ammoPickups = ammoPickups.filter(ac => {
+    if (ac.collected) return false;
+    ac.x -= speed * 0.6;
+    ac.anim += dt * 2.2;
+    const dx = player.x - ac.x, dy = player.y - ac.y;
+    if (Math.sqrt(dx * dx + dy * dy) < 32) {
+      ac.collected = true;
+      const cap = maxAmmo();
+      const gained = Math.min(3, cap - ammo);
+      if (gained > 0) {
+        ammo = Math.min(ammo + gained, cap);
+        spawnParticles(ac.x, ac.y, '#ffcc02', 12);
+        Snd.play('coin');
+        popups.push({ text: '+' + gained + ' ammo', x: ac.x, y: ac.y - 24, alpha: 1, timer: 1.4, color: '#ffcc02' });
+        updateShootBtn();
+      }
+      return false;
+    }
+    return ac.x > -40;
+  });
+
+  // ── UPDATE MYSTERY BOXES ──
+  mysteryBoxes = mysteryBoxes.filter(mb => {
+    if (mb.collected) return false;
+    mb.x -= speed * 0.6;
+    mb.anim += dt * 1.8;
+    const dx = player.x - mb.x, dy = player.y - mb.y;
+    if (Math.sqrt(dx * dx + dy * dy) < 34) {
+      mb.collected = true;
+      _openMysteryBox(mb.x, mb.y);
+      return false;
+    }
+    return mb.x > -40;
+  });
+
   // ── UPDATE COINS ──
   coins = coins.filter(c => {
     if (c.collected) return false;
     c.x -= speed;
     const dx = player.x - c.x, dy = player.y - c.y;
     const d = Math.sqrt(dx * dx + dy * dy);
-    if (d < magnetRange) { c.x += (dx / d) * 5; c.y += (dy / d) * 5; }
+    if (d < magnetRange) { const pull = 2.5 + (magnetRange - d) / magnetRange * 2; c.x += (dx / d) * pull; c.y += (dy / d) * pull; }
     if (d < c.r + 22) {
       c.collected = true;
       const v = c.val || 1;
@@ -1574,7 +1630,9 @@ function update(dt) {
   if (!isFreePlay && !landing && !boss && distance >= levelData.goal) {
     spawnTimer = 999; // stop obstacles
     if (BOSS_LEVELS.has(currentLevel)) {
-      // Spawn the boss
+      // Spawn the boss — refill ammo to max so player can fight
+      const bCap = maxAmmo();
+      if (bCap > 0) { ammo = bCap; updateShootBtn(); }
       boss = createBoss();
       popups.push({ text: '⚔️ BOSS INCOMING!', x: W * 0.5, y: H * 0.38, alpha: 1, timer: 2.5, color: '#FF4444' });
       screenShake = 0.8;
@@ -1612,13 +1670,16 @@ function handleHit() {
 function updateHUD() {
   const distM = Math.floor(distance);
   document.getElementById('hud-distance').textContent = distM + 'm';
+  const hudLeft = document.querySelector('.hud-left');
   if (isFreePlay) {
     const best = Save.data.freePlayBest || 0;
     document.getElementById('hud-goal').textContent = best > 0 ? '🏆 ' + best + 'm' : '';
-    document.getElementById('hud-level').textContent = '∞';
+    // In free play: hide the level panel entirely
+    if (hudLeft) hudLeft.style.display = 'none';
   } else {
     document.getElementById('hud-goal').textContent = '/ ' + levelData.goal + 'm';
     document.getElementById('hud-level').textContent = currentLevel;
+    if (hudLeft) hudLeft.style.display = '';
   }
   document.getElementById('hud-coins').textContent = Save.data.coins + sessionCoins;
 
@@ -2339,6 +2400,81 @@ function drawAmmoCrate(ac) {
   ctx.restore();
 }
 
+// ── MYSTERY BOX REWARD ───────────────────────────────────
+function _openMysteryBox(x, y) {
+  const roll = Math.random();
+  let rewardText, rewardColor;
+  if (roll < 0.40) {
+    // Coins (most common) — 20–80
+    const c = 20 + Math.floor(Math.random() * 61);
+    sessionCoins += c;
+    rewardText = '+' + c + ' 🪙'; rewardColor = '#FFD700';
+    spawnParticles(x, y, '#FFD700', 18);
+  } else if (roll < 0.65) {
+    // Big coins — 100–200
+    const c = 100 + Math.floor(Math.random() * 101);
+    sessionCoins += c;
+    rewardText = '+' + c + ' 🪙!'; rewardColor = '#FF6B35';
+    spawnParticles(x, y, '#FF6B35', 22);
+  } else if (roll < 0.78) {
+    // Ammo refill
+    const cap = maxAmmo();
+    if (cap > 0) {
+      const gained = Math.min(4, cap - ammo);
+      ammo = Math.min(ammo + gained, cap);
+      updateShootBtn();
+      rewardText = gained > 0 ? '+' + gained + ' AMMO!' : 'AMMO FULL'; rewardColor = '#ffcc02';
+    } else {
+      const c = 50; sessionCoins += c;
+      rewardText = '+' + c + ' 🪙'; rewardColor = '#FFD700';
+    }
+    spawnParticles(x, y, '#ffcc02', 16);
+  } else if (roll < 0.90) {
+    // Shield
+    shieldHits = Math.min(shieldHits + 1, 5);
+    rewardText = '🛡 SHIELD!'; rewardColor = '#4CAF50';
+    spawnParticles(x, y, '#4CAF50', 16);
+  } else {
+    // Diamond (rare)
+    Save.data.diamonds = (Save.data.diamonds || 0) + 1;
+    Save.save();
+    rewardText = '💎 DIAMOND!'; rewardColor = '#00E5FF';
+    spawnParticles(x, y, '#00E5FF', 28);
+  }
+  Snd.play('coin');
+  popups.push({ text: rewardText, x, y: y - 30, alpha: 1, timer: 2.2, color: rewardColor });
+}
+
+// ── DRAW MYSTERY BOX ─────────────────────────────────────
+function drawMysteryBox(mb) {
+  ctx.save(); ctx.translate(mb.x, mb.y);
+  const bob = Math.sin(mb.anim) * 4;
+  ctx.translate(0, bob);
+  const pulse = 0.5 + 0.5 * Math.sin(mb.anim * 2.5);
+  // Outer glow
+  const grd = ctx.createRadialGradient(0,0,0,0,0,28);
+  grd.addColorStop(0, `rgba(160,80,255,${0.35 + pulse * 0.2})`);
+  grd.addColorStop(1, 'rgba(160,80,255,0)');
+  ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(0,0,28,0,Math.PI*2); ctx.fill();
+  // Box body
+  const sz = 20;
+  ctx.fillStyle = '#6A1B9A';
+  ctx.beginPath(); ctx.roundRect(-sz, -sz, sz*2, sz*2, 5); ctx.fill();
+  ctx.strokeStyle = `rgba(220,140,255,${0.7 + pulse * 0.3})`; ctx.lineWidth = 2;
+  ctx.stroke();
+  // Lid line
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(-sz, -3); ctx.lineTo(sz, -3); ctx.stroke();
+  // Bow ribbon
+  ctx.strokeStyle = '#E040FB'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-sz, -sz); ctx.lineTo(sz, sz); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sz, -sz); ctx.lineTo(-sz, sz); ctx.stroke();
+  // Question mark
+  ctx.fillStyle = 'white'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('?', 0, 1);
+  ctx.restore();
+}
+
 // ── DRAW SHIELD PICKUP ───────────────────────────────────
 function drawShieldPickup(sp) {
   ctx.save();
@@ -2643,8 +2779,10 @@ function draw(elapsed) {
   // Trail
   drawTrail();
 
-  // Coins, ammo, shields, bullets, enemies, obstacles
+  // Coins, ammo, mystery boxes, shields, bullets, enemies, obstacles
   coins.forEach(c => drawCoin(c, elapsed));
+  ammoPickups.forEach(ac => drawAmmoCrate(ac));
+  mysteryBoxes.forEach(mb => drawMysteryBox(mb));
   shieldPickups.forEach(sp => drawShieldPickup(sp));
   bullets.forEach(b => drawBullet(b));
   enemies.forEach(en => drawEnemy(en));
@@ -2849,6 +2987,17 @@ function showReviveScreen() {
 
   showScreen('screen-revive');
   applyLang();
+
+  // Ammo shop row — show only when cannon unlocked, not free play
+  const deathAmmoShop = document.getElementById('death-ammo-shop');
+  if (deathAmmoShop) {
+    if (!isFreePlay && maxAmmo() > 0) {
+      deathAmmoShop.classList.remove('hidden');
+      document.getElementById('death-ammo-count').textContent = ammo;
+    } else {
+      deathAmmoShop.classList.add('hidden');
+    }
+  }
 
   // Determine available revives
   const cost      = (reviveCount + 1) * 100;
@@ -4009,6 +4158,18 @@ window.addEventListener('load', () => {
   if (giveupBtn) giveupBtn.addEventListener('click', () => {
     if (reviveTimer) { clearInterval(reviveTimer); reviveTimer = null; }
     startNewGameFromDeath();
+  });
+
+  // Ammo buy on death screen (50 coins per bullet)
+  const deathBuyAmmoBtn = document.getElementById('death-buy-ammo');
+  if (deathBuyAmmoBtn) deathBuyAmmoBtn.addEventListener('click', () => {
+    const COST = 50, cap = maxAmmo();
+    if (cap <= 0 || Save.data.coins < COST) return;
+    if (ammo >= cap) { document.getElementById('death-ammo-count').textContent = 'FULL'; return; }
+    Save.data.coins -= COST;
+    ammo = Math.min(ammo + 1, cap);
+    Save.save();
+    document.getElementById('death-ammo-count').textContent = ammo;
   });
 
   window.addEventListener('resize', () => {
