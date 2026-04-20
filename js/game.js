@@ -702,6 +702,7 @@ let canvas, ctx, W, H;
 let gameState = 'menu'; // menu | playing | landing | levelcomplete | dead | shop
 let player, obstacles, coins, ammoPickups, mysteryBoxes, shieldPickups, particles, bullets, enemies, enemyBullets;
 let mysteryBoxTimer;
+let bossAmmoWarningDone = false; // tracks whether pre-boss ammo drop has fired
 let distance, speed, sessionCoins, ammo;
 let frameId, lastTime;
 let shieldHits, shootCooldown, shootAutoTimer;
@@ -867,10 +868,10 @@ function updateBoss(dt) {
   } else {
     // Hover toward targetX
     boss.x += (targetX - boss.x) * 0.03;
-    // Track player vertically
+    // Track player vertically — slower so player can dodge and line up shots
     const dy = player.y - boss.y;
-    boss.vy += dy * 80 * dt;
-    boss.vy *= 0.88;
+    boss.vy += dy * 45 * dt;
+    boss.vy *= 0.82;
     boss.y = Math.max(70, Math.min(H - 70, boss.y + boss.vy * dt));
 
     // Phase transitions
@@ -904,7 +905,7 @@ function updateBoss(dt) {
   // Player bullets hit boss
   bullets = bullets.filter(b => {
     const dx = b.x - boss.x, dy = b.y - boss.y;
-    if (Math.abs(dx) < 50 && Math.abs(dy) < 36) {
+    if (Math.abs(dx) < 70 && Math.abs(dy) < 55) { // wider hitbox — easier to land shots
       boss.hp = Math.max(0, boss.hp - 1);
       screenShake = 0.25;
       spawnParticles(b.x, b.y, '#ff5722', 6);
@@ -1230,6 +1231,7 @@ function initGame(levelNum) {
   obstacles = []; coins = []; ammoPickups = []; mysteryBoxes = []; shieldPickups = []; particles = []; bullets = [];
   enemies = []; enemyBullets = []; popups = [];
   mysteryBoxTimer = 30 + Math.random() * 20;
+  bossAmmoWarningDone = false;
   coinCombo = 0; comboTimer = 0; screenShake = 0; lastLightningTime = 0; speedBoostEffect = 0;
   spawnTimer = 1.5; coinTimer = 1.0; ammoTimer = 10 + Math.random() * 6;
   targetTimer = 8 + Math.random() * 6;
@@ -1757,6 +1759,22 @@ function update(dt) {
     // Update enemies/shield pickups after distance threshold
     enemyTimer      = distance >= 500 && enemies.length === 0 ? Math.min(enemyTimer, 8) : enemyTimer;
     shieldPickupTimer = distance >= 300 ? Math.min(shieldPickupTimer, 18) : shieldPickupTimer;
+  }
+
+  // ── PRE-BOSS AMMO WARNING: spawn ammo crates at 80% of goal on boss levels ──
+  if (!isFreePlay && !isTutorialMode && !bossAmmoWarningDone && BOSS_LEVELS.has(currentLevel)) {
+    if (distance >= levelData.goal * 0.80) {
+      bossAmmoWarningDone = true;
+      const cap = maxAmmo();
+      if (cap > 0) {
+        // Spawn 4 ammo crates in a spread so player can stock up
+        for (let i = 0; i < 4; i++) {
+          ammoPickups.push({ x: W + 30 + i * 70, y: H * 0.2 + i * (H * 0.18), anim: 0 });
+        }
+        popups.push({ text: '⚔️ BOSS AHEAD — STOCK UP!', x: W * 0.5, y: H * 0.28, alpha: 1, timer: 3.0, color: '#FF5722' });
+        screenShake = 0.3;
+      }
+    }
   }
 
   // ── GOAL REACHED: boss level → spawn boss, normal → spawn runway (levels mode only) ──
@@ -2936,66 +2954,6 @@ function drawBackground(t) {
     }
   });
 
-  // ── Biome decorative ground strip ──────────────────────
-  const gStrip = H * 0.06;
-  const groundConfigs = [
-    { fill:'#3a7a20', accent:'#4CAF50' },  // Sky
-    { fill:'#1a4a10', accent:'#2e7d18' },  // Forest
-    { fill:'#6a0080', accent:'#d050e0' },  // Candy
-    { fill:'#7a1060', accent:'#e870b0' },  // Flowers
-    { fill:'#6ab4d8', accent:'#90d0f0' },  // Ice
-    { fill:'#1a6010', accent:'#5ab820' },  // Fruits
-    { fill:'#08083a', accent:'#1a1880' },  // Space
-  ];
-  const gc = groundConfigs[currentBiome] || groundConfigs[0];
-  // Top ground strip
-  ctx.fillStyle = gc.fill + '88'; // semi-transparent
-  ctx.fillRect(0, 0, W, gStrip * 0.35);
-  // Bottom ground strip
-  ctx.fillStyle = gc.fill + 'aa';
-  ctx.fillRect(0, H - gStrip, W, gStrip);
-  // Ground accent line
-  ctx.strokeStyle = gc.accent + '66';
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(0, H - gStrip); ctx.lineTo(W, H - gStrip); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0, gStrip * 0.35); ctx.lineTo(W, gStrip * 0.35); ctx.stroke();
-
-  // Forest: silhouette tree tops on ground strip
-  if (currentBiome === 1) {
-    ctx.fillStyle = 'rgba(10,40,10,0.5)';
-    for (let tx = -30; tx < W + 30; tx += 55) {
-      const ty = H - gStrip - (20 + Math.sin(tx * 0.08) * 12);
-      ctx.beginPath(); ctx.arc(tx + (t * 15) % 55, ty, 22, Math.PI, 0); ctx.fill();
-    }
-  }
-  // Candy: colorful dots along ground
-  if (currentBiome === 2) {
-    const candyCols = ['#FF80AB','#EA80FC','#82B1FF','#FFFF82','#80FFEA'];
-    for (let cx = 0; cx < W; cx += 28) {
-      ctx.fillStyle = candyCols[Math.floor(cx / 28) % candyCols.length] + '55';
-      ctx.beginPath(); ctx.arc(cx + (t * 20) % 28, H - gStrip * 0.5, 5, 0, Math.PI * 2); ctx.fill();
-    }
-  }
-  // Flowers: flower shapes on ground
-  if (currentBiome === 3) {
-    for (let fx = 10; fx < W; fx += 42) {
-      const fy = H - gStrip * 0.55;
-      const fc = ['#FF80AB','#F48FB1','#FCE4EC'][Math.floor(fx / 42) % 3] + '66';
-      ctx.fillStyle = fc;
-      for (let p = 0; p < 5; p++) {
-        const a = p * Math.PI * 2 / 5 + t * 0.4;
-        ctx.beginPath(); ctx.arc(fx + Math.cos(a) * 6, fy + Math.sin(a) * 6, 4, 0, Math.PI * 2); ctx.fill();
-      }
-    }
-  }
-  // Fruits: scattered fruit dots
-  if (currentBiome === 5) {
-    const fruitCols = ['#FF5722','#FF9800','#FFEB3B','#66BB6A','#EC407A'];
-    for (let frx = 15; frx < W; frx += 50) {
-      ctx.fillStyle = fruitCols[Math.floor(frx / 50) % fruitCols.length] + '66';
-      ctx.beginPath(); ctx.arc(frx + Math.sin(frx * 0.1 + t) * 5, H - gStrip * 0.6, 7, 0, Math.PI * 2); ctx.fill();
-    }
-  }
 }
 
 // ── MAIN DRAW ────────────────────────────────────────────
