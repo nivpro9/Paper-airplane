@@ -1854,15 +1854,19 @@ function updateHUD() {
 
   // Ammo display — dots for small caps, number format for large caps
   const cap = maxAmmo();
+  const hudAmmoEl = document.getElementById('hud-ammo');
   let ammoStr = '';
+  const isFull = ammo >= cap;
   if (cap <= 0) {
     ammoStr = '—';
   } else if (cap <= 12) {
     for (let i = 0; i < cap; i++) ammoStr += i < ammo ? '●' : '○';
+    if (isFull) ammoStr += ' ★';
   } else {
-    ammoStr = ammo + '/' + cap;
+    ammoStr = isFull ? 'MAX ★' : ammo + '/' + cap;
   }
-  document.getElementById('hud-ammo').textContent = ammoStr;
+  hudAmmoEl.textContent = ammoStr;
+  hudAmmoEl.style.color = isFull ? '#FFD700' : '';
 }
 
 // ── LANDING SEQUENCE ─────────────────────────────────────
@@ -2547,42 +2551,40 @@ function drawCoin(coin, t) {
   ctx.restore();
 }
 
-// ── DRAW AMMO PICKUP (missile) ────────────────────────────
+// ── DRAW AMMO PICKUP (friendly ammo pack) ─────────────────
 function drawAmmoCrate(ac) {
   ctx.save(); ctx.translate(ac.x, ac.y);
   const bob = Math.sin(ac.anim) * 3;
   ctx.translate(0, bob);
-  // Glow
-  const grd = ctx.createRadialGradient(0,0,0,0,0,24);
-  grd.addColorStop(0,'rgba(255,120,0,0.35)'); grd.addColorStop(1,'rgba(255,120,0,0)');
-  ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(0,0,24,0,Math.PI*2); ctx.fill();
-  // Flame / exhaust (left side, behind body)
-  const fl = ac.anim;
-  for (let i = 0; i < 5; i++) {
-    const foff = (fl * 80 + i * 7) % 14;
-    const fa = 0.7 - foff / 14;
-    ctx.fillStyle = `rgba(255,${120 + i * 20},0,${fa.toFixed(2)})`;
-    ctx.beginPath(); ctx.ellipse(-13 - foff, (i - 2) * 2.2, 3, 2.5, 0, 0, Math.PI*2); ctx.fill();
+  // Outer glow — warm gold
+  const grd = ctx.createRadialGradient(0,0,0,0,0,26);
+  grd.addColorStop(0,'rgba(255,220,0,0.40)'); grd.addColorStop(1,'rgba(255,220,0,0)');
+  ctx.fillStyle=grd; ctx.beginPath(); ctx.arc(0,0,26,0,Math.PI*2); ctx.fill();
+  // Animated sparkles orbiting the pack
+  const t2 = ac.anim;
+  for (let i = 0; i < 4; i++) {
+    const a = t2 * 2.2 + i * Math.PI * 0.5;
+    const sx = Math.cos(a) * 17, sy = Math.sin(a) * 13;
+    const alpha = 0.5 + 0.5 * Math.sin(t2 * 4 + i);
+    ctx.fillStyle = `rgba(255,240,80,${alpha.toFixed(2)})`;
+    ctx.beginPath(); ctx.arc(sx, sy, 2.5, 0, Math.PI * 2); ctx.fill();
   }
-  // Missile body (elongated rounded rect, pointing right)
-  const bodyGrd = ctx.createLinearGradient(0,-8,0,8);
-  bodyGrd.addColorStop(0,'#e0e0e0'); bodyGrd.addColorStop(0.5,'#9e9e9e'); bodyGrd.addColorStop(1,'#616161');
-  ctx.fillStyle=bodyGrd;
-  ctx.beginPath(); ctx.roundRect(-12,-5,26,10,5); ctx.fill();
-  ctx.strokeStyle='#424242'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.roundRect(-12,-5,26,10,5); ctx.stroke();
-  // Red warhead nose cone
-  ctx.fillStyle='#e53935';
-  ctx.beginPath(); ctx.moveTo(14,-5); ctx.lineTo(22,0); ctx.lineTo(14,5); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle='#b71c1c'; ctx.lineWidth=0.8;
-  ctx.beginPath(); ctx.moveTo(14,-5); ctx.lineTo(22,0); ctx.lineTo(14,5); ctx.closePath(); ctx.stroke();
-  // Yellow stripe in the middle
-  ctx.fillStyle='#FFD700';
-  ctx.beginPath(); ctx.roundRect(0,-5,5,10,1); ctx.fill();
-  // Top + bottom fins (at tail)
-  ctx.fillStyle='#FF7043';
-  ctx.beginPath(); ctx.moveTo(-12,-5); ctx.lineTo(-18,-12); ctx.lineTo(-7,-5); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-12,5); ctx.lineTo(-18,12); ctx.lineTo(-7,5); ctx.closePath(); ctx.fill();
+  // Pack body — bright teal rounded rect
+  const bg = ctx.createLinearGradient(0,-13,0,13);
+  bg.addColorStop(0,'#26C6DA'); bg.addColorStop(1,'#00838F');
+  ctx.fillStyle=bg;
+  ctx.beginPath(); ctx.roundRect(-14,-13,28,26,7); ctx.fill();
+  // Gold border
+  ctx.strokeStyle='#FFD700'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.roundRect(-14,-13,28,26,7); ctx.stroke();
+  // White "+" cross symbol (clearly friendly pickup)
+  ctx.fillStyle='#ffffff';
+  ctx.beginPath(); ctx.roundRect(-3,-10,6,20,2); ctx.fill(); // vertical bar
+  ctx.beginPath(); ctx.roundRect(-10,-3,20,6,2); ctx.fill(); // horizontal bar
+  // Small gun icon below the cross (tiny text)
+  ctx.font = 'bold 9px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  ctx.fillText('🔫', 0, 16);
   ctx.restore();
 }
 
