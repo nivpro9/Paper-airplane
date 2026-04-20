@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<link rel="stylesheet" href="css/style.css?v=29">
+<link rel="stylesheet" href="css/style.css?v=30">
 </head>
 <body>
 
@@ -115,6 +115,11 @@
   <div class="lang-selector" id="langSelector">
     <button class="lang-btn" id="langBtn">🇬🇧</button>
     <div class="lang-dropdown hidden" id="langDropdown"></div>
+  </div>
+  <!-- Settings (sound + vibration toggles) -->
+  <div class="settings-row" id="settings-row">
+    <button class="settings-toggle-btn" id="sound-toggle-btn" onclick="toggleSound()" title="Sound">🔊</button>
+    <button class="settings-toggle-btn" id="vibrate-toggle-btn" onclick="toggleVibrate()" title="Vibration">📳</button>
   </div>
   <div class="menu-content">
     <div class="logo">
@@ -294,7 +299,7 @@
   </div>
 </div>
 
-<script src="js/game.js?v=48"></script>
+<script src="js/game.js?v=49"></script>
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});

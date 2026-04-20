@@ -162,6 +162,20 @@ body {
 .lang-opt:hover, .lang-opt.lang-active { background: rgba(255,255,255,0.12); }
 .lang-opt.lang-active { color: #FFD700; }
 
+/* ── SETTINGS TOGGLES ── */
+.settings-row {
+  display: flex; gap: 8px; justify-content: flex-end;
+  position: absolute; top: 14px; right: 60px;
+}
+.settings-toggle-btn {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 50%; width: 36px; height: 36px;
+  font-size: 18px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.2s;
+}
+.settings-toggle-btn:active { background: rgba(255,255,255,0.25); }
+.settings-toggle-btn.off { opacity: 0.4; filter: grayscale(1); }
+
 .btn-play {
   background: linear-gradient(135deg, #FF6B35, #f7410f);
   color: white; border: none; border-radius: 16px;
@@ -542,10 +556,12 @@ body {
 .world-range { color: rgba(255,255,255,0.5); font-size: 12px; }
 
 .world-bubbles {
-  display: grid; grid-template-columns: repeat(5, 1fr);
-  gap: 8px; padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  padding: 14px;
   background: rgba(0,0,0,0.25);
-  align-items: end; /* align all cells to bottom so boss tag floats above without shifting */
+  align-items: end;
 }
 
 .lv-bubble {
@@ -557,6 +573,7 @@ body {
   transition: transform 0.12s;
   cursor: pointer;
   position: relative;
+  width: 100%;
 }
 .lv-bubble:active { transform: scale(0.88); }
 
@@ -621,6 +638,7 @@ body {
 }
 .lv-bubble-wrap {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
+  width: 100%;
 }
 .lv-boss-tag {
   font-size: 9px; font-weight: bold; letter-spacing: 1px;

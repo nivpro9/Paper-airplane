@@ -1,4 +1,11 @@
 'use strict';
+// ── VIBRATION UTILITY ─────────────────────────────────────
+const Vibrate = {
+  buzz(ms) {
+    if (!Save?.data?.vibrateOn && Save?.data?.vibrateOn !== undefined) return;
+    try { navigator.vibrate && navigator.vibrate(ms); } catch(e) {}
+  }
+};
 // ═══════════════════════════════════════════════════════
 //  PAPER FLIGHT EVOLUTION — complete rewrite with levels
 // ═══════════════════════════════════════════════════════
@@ -58,7 +65,7 @@ const LEVELS = generateLevels();
 const VEHICLES = [
   { id:0, name:'Paper Plane',     emoji:'✉️',  cost:0,     levelReq:1,  speed:1.0,  control:1.0,  color:'#ffffff', landing:'strip',    perk:'Standard all-rounder'                          },
   { id:1, name:'Upgraded Paper',  emoji:'📄',  cost:135,   levelReq:3,  speed:1.15, control:1.1,  color:'#e3f2fd', landing:'strip',    perk:'🧲 Coin magnet range +40%'                     },
-  { id:2, name:'Drone',           emoji:'🚁',  cost:360,   levelReq:7,  speed:0.95, control:1.2,  color:'#90caf9', landing:'helipad',  perk:'🎯 Hover control — glides smoothly, easy to steer' },
+  { id:2, name:'Drone',           emoji:'🚁',  cost:360,   levelReq:7,  speed:1.1,  control:1.2,  color:'#90caf9', landing:'helipad',  perk:'🎯 Hover control — glides smoothly, easy to steer' },
   { id:3, name:'Light Plane',     emoji:'🛩️', cost:810,   levelReq:12, speed:1.3,  control:1.2,  color:'#4fc3f7', landing:'runway',   perk:'⚡ Aerobatic — tighter turns'                   },
   { id:4, name:'Propeller Plane', emoji:'✈️',  cost:1620,  levelReq:18, speed:1.5,  control:1.15, color:'#ffd54f', landing:'runway',   perk:'💨 Fan gusts reduced by 60%'                   },
   { id:5, name:'Rocket',          emoji:'🚀',  cost:2880,  levelReq:25, speed:2.0,  control:0.85, color:'#ff7043', landing:'pad',      perk:'🔥 Fire trail — hold for speed burst'           },
@@ -609,7 +616,7 @@ const Save = {
     currentLevel: 1, tutorialDone: false,
     levelBests: {}, prestige: 0,
     dataVersion: 2,
-    lastSpin: 0, spinShields: 0, spinAmmo: 0, boughtAmmo: 0,
+    lastSpin: 0, spinShields: 0, spinAmmo: 0, boughtAmmo: 0, savedAmmo: 0,
     spinSpeed: 0, spinDoubleCoins: 0,
     lastLogin: 0, loginStreak: 0,
     gameCount: 0,
@@ -617,6 +624,8 @@ const Save = {
     freePlayBest: 0,
     activeSkin: 0,
     ownedSkins: [0],
+    soundOn: true,
+    vibrateOn: true,
   },
   data: null,
   fresh() { return JSON.parse(JSON.stringify(this.defaults)); },
@@ -674,6 +683,7 @@ const Save = {
     if (this.data.spinShields === undefined) this.data.spinShields = 0;
     if (this.data.spinAmmo === undefined) this.data.spinAmmo = 0;
     if (this.data.boughtAmmo === undefined) this.data.boughtAmmo = 0;
+    if (this.data.savedAmmo === undefined) this.data.savedAmmo = 0;
     if (this.data.spinSpeed === undefined) this.data.spinSpeed = 0;
     if (this.data.spinDoubleCoins === undefined) this.data.spinDoubleCoins = 0;
     if (this.data.lastLogin === undefined) this.data.lastLogin = 0;
@@ -684,6 +694,8 @@ const Save = {
     if (this.data.activeSkin === undefined) this.data.activeSkin = 0;
     if (!this.data.ownedSkins || !Array.isArray(this.data.ownedSkins)) this.data.ownedSkins = [0];
     if (!this.data.ownedSkins.includes(0)) this.data.ownedSkins.unshift(0);
+    if (this.data.soundOn === undefined) this.data.soundOn = true;
+    if (this.data.vibrateOn === undefined) this.data.vibrateOn = true;
     // Re-save to populate all storage mechanisms in case one was missing
     this.save();
   },
@@ -926,6 +938,7 @@ function updateBoss(dt) {
 function killBoss() {
   if (!boss || boss.dead) return;
   boss.dead = true;
+  Vibrate.buzz(60);
   boss.hp = 0;
   const bossRef = boss;
   // Chain explosion sequence
@@ -1294,7 +1307,9 @@ function initGame(levelNum) {
   window._doubleCoinActive = doubleCoinActive;
 
   const cap = maxAmmo();
-  ammo = cap > 0 ? Math.floor(cap * 0.5) : 0;
+  // Restore ammo saved from previous game (capped at current max)
+  const restoredAmmo = Math.min(Save.data.savedAmmo || 0, cap);
+  ammo = cap > 0 ? Math.max(restoredAmmo, Math.floor(cap * 0.4)) : 0;
   // FULL AMMO from spin — give maximum regardless of cannon level
   if (Save.data.spinAmmo > 0) {
     ammo = cap > 0 ? cap : 20; // if no cannon, still store so hint shows
@@ -1384,7 +1399,7 @@ function update(dt) {
     // ── DRONE: gentle hover physics — precise & easy to control ──
     if (isHolding) {
       // Soft, gradual lift — not jerky
-      player.vy = Math.max(player.vy - 360 * ctrl * dt, -170 * ctrl);
+      player.vy = Math.max(player.vy - 460 * ctrl * dt, -210 * ctrl);
     } else {
       // Very light gravity + strong velocity damping = natural hover tendency
       player.vy += 90 * dt;
@@ -1448,7 +1463,12 @@ function update(dt) {
         const dx = b.x - obs.x, dy = b.y - obs.y;
         const hr = obs.type === 'bird' ? obs.r + b.r : 22 + b.r;
         if (Math.sqrt(dx * dx + dy * dy) < hr) {
-          spawnParticles(obs.x, obs.y, obs.type === 'bird' ? '#8d6e63' : '#78909c', 10);
+          const reward = obs.type === 'bird' ? 3 : 5;
+          sessionCoins += reward;
+          screenShake = 0.25;
+          spawnParticles(obs.x, obs.y, obs.type === 'bird' ? '#8d6e63' : '#78909c', 16);
+          popups.push({ text: '+' + reward + ' 🪙', x: obs.x, y: obs.y - 20, alpha: 1, timer: 1.0, color: '#FFD700' });
+          Vibrate.buzz(25);
           obstacles.splice(i, 1);
           hit = true; break;
         }
@@ -1626,6 +1646,7 @@ function update(dt) {
         Snd.play('crash');
         popups.push({ text: '💥 +5 🪙', x: obs.x, y: obs.y - 24, alpha: 1, timer: 1.2, color: '#FF9800' });
         sessionCoins += 5;
+        Vibrate.buzz(40);
         return false;
       }
       // Collision with player
@@ -1672,6 +1693,9 @@ function update(dt) {
         Snd.play('coin');
         popups.push({ text: tf('ammoPickupText', gained), x: ac.x, y: ac.y - 24, alpha: 1, timer: 1.4, color: '#00e5ff' });
         updateShootBtn();
+      } else {
+        // Already at hard limit — show indicator
+        popups.push({ text: '🔫 AMMO FULL!', x: ac.x, y: ac.y - 24, alpha: 1, timer: 1.2, color: '#FF1744' });
       }
       return false;
     }
@@ -1855,6 +1879,7 @@ function handleHit() {
     return;
   }
   player.alive = false;
+  Vibrate.buzz(30);
   spawnParticles(player.x, player.y, VEHICLES[Save.data.activeVehicle].color, 16);
   Snd.play('crash');
   const _crashSession = gameSession;
@@ -3023,18 +3048,19 @@ function drawBackground(t) {
 function draw(elapsed) {
   ctx.clearRect(0, 0, W, H);
   ctx.save();
+  // Background and static pillars drawn BEFORE shake — they never wobble
+  drawBackground(elapsed);
+  if (landing && landing.runway) drawRunway(landing.runway);
+  obstacles.forEach(o => { if (o.type === 'pillar') drawObstacle(o); });
+
+  // Apply screen shake only to dynamic layer
   if (screenShake > 0.02) {
     ctx.translate((Math.random() - 0.5) * screenShake * 10, (Math.random() - 0.5) * screenShake * 10);
   }
-  drawBackground(elapsed);
-
-  // Landing runway (behind everything else, above bg)
-  if (landing && landing.runway) drawRunway(landing.runway);
-
   // Trail
   drawTrail();
 
-  // Coins, ammo, mystery boxes, shields, bullets, enemies, obstacles
+  // Coins, ammo, mystery boxes, shields, bullets, enemies, non-pillar obstacles
   coins.forEach(c => drawCoin(c, elapsed));
   ammoPickups.forEach(ac => drawAmmoCrate(ac));
   mysteryBoxes.forEach(mb => drawSurpriseBox(mb));
@@ -3043,7 +3069,7 @@ function draw(elapsed) {
   enemies.forEach(en => drawEnemy(en));
   if (boss) drawBoss();
   drawEnemyBullets();
-  obstacles.forEach(o => drawObstacle(o));
+  obstacles.forEach(o => { if (o.type !== 'pillar') drawObstacle(o); });
   drawPopups();
 
   // Shield flash
@@ -3226,6 +3252,8 @@ function beginFreePlay() {
 // ── UNIFIED DEATH SCREEN ─────────────────────────────────
 // Called immediately after player dies (with 800ms delay from handleHit)
 function showReviveScreen() {
+  // Persist current ammo so next game starts with same count
+  if (!isFreePlay) { Save.data.savedAmmo = Math.min(ammo, maxAmmo()); Save.save(); }
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
   document.getElementById('shoot-btn').classList.add('hidden');
   gameState = 'dead';
@@ -3391,6 +3419,8 @@ function _finalizeGameOver() {
 function _resetFinalizeGuard() { _finalizeGameOver._done = false; }
 
 function showLevelComplete() {
+  // Persist current ammo to carry into next level
+  if (!isFreePlay) { Save.data.savedAmmo = Math.min(ammo, maxAmmo()); Save.save(); }
   gameState = 'levelcomplete';
   if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
   document.getElementById('shoot-btn').classList.add('hidden');
@@ -3961,6 +3991,7 @@ const Snd = (() => {
   }
 
   function play(type) {
+    if (Save?.data?.soundOn === false) return;
     try {
       const ac = getCtx();
       if (ac.state === 'suspended') ac.resume();
@@ -4549,6 +4580,24 @@ function applySpinPrize(prize) {
   Save.save();
 }
 
+// ── SETTINGS TOGGLES ──────────────────────────────────────
+function toggleSound() {
+  Save.data.soundOn = !Save.data.soundOn;
+  Save.save();
+  document.getElementById('sound-toggle-btn').textContent = Save.data.soundOn ? '🔊' : '🔇';
+}
+function toggleVibrate() {
+  Save.data.vibrateOn = !Save.data.vibrateOn;
+  Save.save();
+  document.getElementById('vibrate-toggle-btn').textContent = Save.data.vibrateOn ? '📳' : '📴';
+}
+function updateSettingsUI() {
+  const sb = document.getElementById('sound-toggle-btn');
+  const vb = document.getElementById('vibrate-toggle-btn');
+  if (sb) sb.textContent = Save.data.soundOn !== false ? '🔊' : '🔇';
+  if (vb) vb.textContent = Save.data.vibrateOn !== false ? '📳' : '📴';
+}
+
 // ── INIT ─────────────────────────────────────────────────
 window.addEventListener('load', () => {
   canvas = document.getElementById('gameCanvas');
@@ -4637,5 +4686,6 @@ window.addEventListener('load', () => {
   initLangSelector();
   applyLang();
   showMenu();
+  updateSettingsUI();
   checkDailyGift();
 });
