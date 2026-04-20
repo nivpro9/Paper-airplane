@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<link rel="stylesheet" href="css/style.css?v=32">
+<link rel="stylesheet" href="css/style.css?v=33">
 </head>
 <body>
 
@@ -119,8 +119,12 @@
   </div>
   <!-- Settings (sound + vibration toggles) -->
   <div class="settings-row" id="settings-row">
-    <button class="settings-toggle-btn" id="sound-toggle-btn" onclick="toggleSound()" title="Sound">🔊</button>
-    <button class="settings-toggle-btn" id="vibrate-toggle-btn" onclick="toggleVibrate()" title="Vibration">📳</button>
+    <button class="settings-toggle-btn on" id="sound-toggle-btn" onclick="toggleSound()">
+      <span class="stb-icon">🔊</span><span>SOUND</span>
+    </button>
+    <button class="settings-toggle-btn on" id="vibrate-toggle-btn" onclick="toggleVibrate()">
+      <span class="stb-icon">📳</span><span>BUZZ</span>
+    </button>
   </div>
   <div class="menu-content">
     <div class="logo">
@@ -300,7 +304,7 @@
   </div>
 </div>
 
-<script src="js/game.js?v=51"></script>
+<script src="js/game.js?v=52"></script>
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});

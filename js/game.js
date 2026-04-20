@@ -712,13 +712,13 @@ const TUT_STEP_TIMEOUT = [6, 7, 8, 9]; // max seconds per step before auto-advan
 // ── GAME STATE ───────────────────────────────────────────
 let canvas, ctx, W, H;
 let gameState = 'menu'; // menu | playing | landing | levelcomplete | dead | shop
-let player, obstacles, coins, ammoPickups, mysteryBoxes, shieldPickups, particles, bullets, enemies, enemyBullets;
+let player, obstacles, coins, ammoPickups, mysteryBoxes, shieldPickups, diamondPickups, particles, bullets, enemies, enemyBullets;
 let mysteryBoxTimer;
 let bossAmmoWarningDone = false; // tracks whether pre-boss ammo drop has fired
 let distance, speed, sessionCoins, ammo;
 let frameId, lastTime;
 let shieldHits, shootCooldown, shootAutoTimer;
-let spawnTimer, coinTimer, ammoTimer, targetTimer, enemyTimer, shieldPickupTimer;
+let spawnTimer, coinTimer, ammoTimer, targetTimer, enemyTimer, shieldPickupTimer, diamondPickupTimer;
 let popups = []; // [{text, x, y, alpha, timer, color}]
 let clouds = [], stars = [], bgParticles = [];
 let coinCombo = 0, comboTimer = 0;
@@ -1268,7 +1268,7 @@ function initGame(levelNum) {
   AdManager.resetGame();
   _resetFinalizeGuard();
   distance = 0; sessionCoins = 0;
-  obstacles = []; coins = []; ammoPickups = []; mysteryBoxes = []; shieldPickups = []; particles = []; bullets = [];
+  obstacles = []; coins = []; ammoPickups = []; mysteryBoxes = []; shieldPickups = []; diamondPickups = []; particles = []; bullets = [];
   enemies = []; enemyBullets = []; popups = [];
   mysteryBoxTimer = 30 + Math.random() * 20;
   bossAmmoWarningDone = false;
@@ -1277,6 +1277,7 @@ function initGame(levelNum) {
   targetTimer = 8 + Math.random() * 6;
   enemyTimer = currentLevel >= 25 ? 8 + Math.random() * 6 : 99999;
   shieldPickupTimer = currentLevel >= 30 ? 18 + Math.random() * 12 : 99999;
+  diamondPickupTimer = 55 + Math.random() * 35;
   shootCooldown = 0; shootAutoTimer = 3;
   isHolding = false;
 
@@ -1422,13 +1423,21 @@ function update(dt) {
   }
   player.y += player.vy * dt;
 
-  // Hit top or bottom edge = crash (no sliding along walls)
+  // Hit top or bottom edge = instant crash — bypasses shields & invincibility
   if (player.y - player.h * 0.5 <= 0) {
-    player.y = player.h * 0.5; player.vy = 0;
-    if (player.alive && !isTutorialMode) handleHit();
+    player.y = player.h * 0.5;
+    if (player.vy < 0) player.vy = 30; // bounce down so player leaves edge
+    if (player.alive && !isTutorialMode) {
+      player.invincible = 0;
+      handleHit();
+    }
   } else if (player.y + player.h * 0.5 >= H) {
-    player.y = H - player.h * 0.5; player.vy = 0;
-    if (player.alive && !isTutorialMode) handleHit();
+    player.y = H - player.h * 0.5;
+    if (player.vy > 0) player.vy = -30; // bounce up so player leaves edge
+    if (player.alive && !isTutorialMode) {
+      player.invincible = 0;
+      handleHit();
+    }
   }
 
   // Trail — origin at back of plane (left edge) so it streams behind
@@ -1504,15 +1513,7 @@ function update(dt) {
   coinTimer -= dt;
   if (coinTimer <= 0) { spawnCoin(); coinTimer = 2.0 + Math.random() * 2.0; }
 
-  // ── SHOOT TARGETS spawn (from level 3+, not in free play) ──
-  if (currentLevel >= 3 && !isFreePlay) {
-    targetTimer -= dt;
-    if (targetTimer <= 0) {
-      obstacles.push(createTarget());
-      if (Math.random() < 0.25) obstacles.push(createTarget()); // occasional pair
-      targetTimer = 8 + Math.random() * 7;
-    }
-  }
+  // Shoot targets disabled — removed per design decision
 
   // Shield pickup spawn (levels 30+, every 18–30s)
   if (currentLevel >= 30) {
@@ -1520,6 +1521,15 @@ function update(dt) {
     if (shieldPickupTimer <= 0) {
       shieldPickups.push(createShieldPickup());
       shieldPickupTimer = 18 + Math.random() * 12;
+    }
+  }
+
+  // Diamond pickup spawn (rare, level 5+, max 1 on screen at a time)
+  if (currentLevel >= 5 || isFreePlay) {
+    diamondPickupTimer -= dt;
+    if (diamondPickupTimer <= 0 && diamondPickups.length === 0) {
+      diamondPickups.push({ x: W + 30, y: H * 0.15 + Math.random() * H * 0.7, anim: 0 });
+      diamondPickupTimer = 55 + Math.random() * 35;
     }
   }
 
@@ -1687,6 +1697,28 @@ function update(dt) {
     return sp.x > -40;
   });
 
+  // ── UPDATE DIAMOND PICKUPS ──
+  diamondPickups = diamondPickups.filter(dp => {
+    if (dp.collected) return false;
+    dp.x -= speed * 0.55;
+    dp.anim += dt * 1.8;
+    const dx = player.x - dp.x, dy = player.y - dp.y;
+    if (Math.sqrt(dx * dx + dy * dy) < 28) {
+      dp.collected = true;
+      Save.data.diamonds = (Save.data.diamonds || 0) + 1;
+      Save.save();
+      spawnParticles(dp.x, dp.y, '#00E5FF', 30);
+      spawnParticles(dp.x, dp.y, '#ffffff', 12);
+      Snd.play('coin');
+      try { navigator.vibrate && navigator.vibrate([40, 30, 80]); } catch(e) {}
+      const mdEl = document.getElementById('menu-diamonds');
+      if (mdEl) mdEl.textContent = Save.data.diamonds;
+      popups.push({ text: '💎 +1 DIAMOND!', x: dp.x, y: dp.y - 32, alpha: 1, timer: 2.5, color: '#00E5FF' });
+      return false;
+    }
+    return dp.x > -50;
+  });
+
   // ── UPDATE AMMO PICKUPS ──
   ammoPickups = ammoPickups.filter(ac => {
     if (ac.collected) return false;
@@ -1697,7 +1729,7 @@ function update(dt) {
       ac.collected = true;
       const cap = maxAmmo();
       const hardMax = cap + 6; // pickups can top up above normal cap (bonus reserve)
-      const gained = Math.min(3, hardMax - ammo);
+      const gained = Math.min(1, hardMax - ammo);
       if (gained > 0) {
         ammo = Math.min(ammo + gained, hardMax);
         spawnParticles(ac.x, ac.y, '#00e5ff', 12);
@@ -2152,12 +2184,12 @@ function drawObstacle(obs) {
 function _drawWallForBiome(cx, w, topH, botY, seed) {
   switch (currentBiome) {
     case 0: _wallCloud(cx, w, topH, botY, seed);      break;
-    case 1: _wallBuilding(cx, w, topH, botY);         break;
-    case 2: _wallNeon(cx, w, topH, botY);             break;
+    case 1: _wallBuilding(cx, w, topH, botY, seed);   break;
+    case 2: _wallNeon(cx, w, topH, botY, seed);       break;
     case 3: _wallStormCloud(cx, w, topH, botY, seed); break;
-    case 4: _wallIce(cx, w, topH, botY);              break;
-    case 5: _wallRock(cx, w, topH, botY);             break;
-    case 6: _wallAsteroid(cx, w, topH, botY);         break;
+    case 4: _wallIce(cx, w, topH, botY, seed);        break;
+    case 5: _wallRock(cx, w, topH, botY, seed);       break;
+    case 6: _wallAsteroid(cx, w, topH, botY, seed);   break;
     default: _wallCloud(cx, w, topH, botY, seed);
   }
 }
@@ -2200,9 +2232,8 @@ function _wallCloud(cx, w, topH, botY, seed) {
 }
 
 // Biome 1 — Sunset: building silhouettes with lit windows
-function _wallBuilding(cx, w, topH, botY) {
+function _wallBuilding(cx, w, topH, botY, seed) {
   const x0 = cx - w / 2;
-  const seed = (cx * 11) | 0;
   const bldW = Math.max(16, (w / 3) | 0);
 
   // Top wall — dark sky
@@ -2259,9 +2290,8 @@ function _wallBuilding(cx, w, topH, botY) {
 }
 
 // Biome 2 — Night: dark walls with cyan neon edges
-function _wallNeon(cx, w, topH, botY) {
+function _wallNeon(cx, w, topH, botY, seed) {
   const x0 = cx - w / 2;
-  const seed = (cx * 13) | 0;
   // Dark wall bodies
   ctx.fillStyle = '#080818';
   ctx.fillRect(x0, 0, w, topH);
@@ -2333,9 +2363,8 @@ function _wallStormCloud(cx, w, topH, botY, seed) {
 }
 
 // Biome 4 — Arctic: ice walls with icicles
-function _wallIce(cx, w, topH, botY) {
+function _wallIce(cx, w, topH, botY, seed) {
   const x0 = cx - w / 2;
-  const seed = (cx * 17) | 0;
   const iStep = 14;
   // Ice gradient — top
   const iceT = ctx.createLinearGradient(x0, 0, x0 + w, 0);
@@ -2381,9 +2410,8 @@ function _wallIce(cx, w, topH, botY) {
 }
 
 // Biome 5 — Canyon: layered rock walls with jagged edges
-function _wallRock(cx, w, topH, botY) {
+function _wallRock(cx, w, topH, botY, seed) {
   const x0 = cx - w / 2;
-  const seed = (cx * 13) | 0;
   const jStep = 12;
   const strataC = ['rgba(190,110,40,0.28)', 'rgba(90,40,10,0.28)', 'rgba(210,140,70,0.2)'];
 
@@ -2423,9 +2451,8 @@ function _wallRock(cx, w, topH, botY) {
 }
 
 // Biome 6 — Space: asteroid mass with purple glow + craters
-function _wallAsteroid(cx, w, topH, botY) {
+function _wallAsteroid(cx, w, topH, botY, seed) {
   const x0 = cx - w / 2;
-  const seed = (cx * 19) | 0;
 
   // Dark asteroid body — top
   ctx.fillStyle = '#09090f';
@@ -2711,12 +2738,20 @@ function _openSurpriseBox(x, y) {
     shieldHits = Math.min(shieldHits + 1, 5);
     rewardText = '🛡 SHIELD!'; rewardColor = '#4CAF50';
     spawnParticles(x, y, '#4CAF50', 16);
+  } else if (roll < 0.95) {
+    // Jackpot coins (rare — feels like winning big)
+    const c = 300 + Math.floor(Math.random() * 301);
+    sessionCoins += c;
+    rewardText = '🎉 +' + c + '!'; rewardColor = '#FF6B35';
+    spawnParticles(x, y, '#FF6B35', 26);
+    spawnParticles(x, y, '#FFD700', 14);
   } else {
-    // Diamond (rare)
+    // Diamond (very rare — ~5%)
     Save.data.diamonds = (Save.data.diamonds || 0) + 1;
     Save.save();
     rewardText = '💎 DIAMOND!'; rewardColor = '#00E5FF';
-    spawnParticles(x, y, '#00E5FF', 28);
+    spawnParticles(x, y, '#00E5FF', 32);
+    spawnParticles(x, y, '#ffffff', 14);
   }
   Snd.play('coin');
   popups.push({ text: rewardText, x, y: y - 30, alpha: 1, timer: 2.2, color: rewardColor });
@@ -2790,6 +2825,62 @@ function drawShieldPickup(sp) {
   ctx.restore();
 }
 
+
+// ── DRAW DIAMOND PICKUP ──────────────────────────────────
+function drawDiamondPickup(dp) {
+  ctx.save();
+  const t = dp.anim;
+  ctx.translate(dp.x, dp.y + Math.sin(t * 1.4) * 6);
+
+  // Spinning light rays (behind gem)
+  ctx.save();
+  ctx.rotate(t * 0.35);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const len = 22 + 7 * Math.sin(t * 1.8 + i);
+    ctx.strokeStyle = `rgba(0,229,255,${0.10 + 0.07 * Math.sin(t * 2 + i)})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 13, Math.sin(a) * 13);
+    ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Outer glow pulse
+  const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 28);
+  grd.addColorStop(0, `rgba(0,229,255,${0.26 + 0.12 * Math.sin(t * 3)})`);
+  grd.addColorStop(1, 'rgba(0,229,255,0)');
+  ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI * 2); ctx.fill();
+
+  // Gem shape (gentle rock)
+  ctx.save();
+  ctx.rotate(Math.sin(t * 0.6) * 0.12);
+  const s = 16;
+  ctx.fillStyle = '#aff5ff';
+  ctx.beginPath(); ctx.moveTo(0,-s); ctx.lineTo(-s*0.62,-s*0.12); ctx.lineTo(0,0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#00e5ff';
+  ctx.beginPath(); ctx.moveTo(0,-s); ctx.lineTo(s*0.62,-s*0.12); ctx.lineTo(0,0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#006fa8';
+  ctx.beginPath(); ctx.moveTo(0,s); ctx.lineTo(-s*0.62,-s*0.12); ctx.lineTo(0,0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#0099cc';
+  ctx.beginPath(); ctx.moveTo(0,s); ctx.lineTo(s*0.62,-s*0.12); ctx.lineTo(0,0); ctx.closePath(); ctx.fill();
+  // Outline
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.1;
+  ctx.beginPath(); ctx.moveTo(0,-s); ctx.lineTo(s*0.62,-s*0.12); ctx.lineTo(0,s); ctx.lineTo(-s*0.62,-s*0.12); ctx.closePath(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-s*0.62,-s*0.12); ctx.lineTo(s*0.62,-s*0.12); ctx.stroke();
+  // Sparkle highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath(); ctx.arc(-3.5, -7, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // Label
+  ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 3;
+  ctx.strokeText('+1 \uD83D\uDC8E', 0, s + 15);
+  ctx.fillStyle = '#00e5ff'; ctx.fillText('+1 \uD83D\uDC8E', 0, s + 15);
+  ctx.restore();
+}
 
 // ── DRAW TARGET ──────────────────────────────────────────
 function drawTarget(obs) {
@@ -3096,6 +3187,7 @@ function draw(elapsed) {
   ammoPickups.forEach(ac => drawAmmoCrate(ac));
   mysteryBoxes.forEach(mb => drawSurpriseBox(mb));
   shieldPickups.forEach(sp => drawShieldPickup(sp));
+  diamondPickups.forEach(dp => drawDiamondPickup(dp));
   bullets.forEach(b => drawBullet(b));
   enemies.forEach(en => drawEnemy(en));
   if (boss) drawBoss();
@@ -3650,7 +3742,7 @@ function startTutorialGame() {
   AdManager.resetGame(); _resetFinalizeGuard();
   distance = 0; sessionCoins = 0;
   obstacles = []; coins = []; ammoPickups = []; mysteryBoxes = [];
-  shieldPickups = []; particles = []; bullets = []; enemies = []; enemyBullets = [];
+  shieldPickups = []; diamondPickups = []; particles = []; bullets = []; enemies = []; enemyBullets = [];
   popups = []; tutHints = [];
   mysteryBoxTimer = 9999; coinTimer = 9999; ammoTimer = 9999;
   targetTimer = 9999; enemyTimer = 9999; shieldPickupTimer = 9999; spawnTimer = 9999;
@@ -4174,15 +4266,16 @@ const Snd = (() => {
     } catch(e) {}
   }
 
-  // Upbeat chiptune — reduced to ~18 notes/loop (was 34) to limit node creation rate
+  // Fun arcade chiptune — bouncy C-major run
   const MELODY = [
-    [659,0.15],[784,0.15],[880,0.2],[784,0.15],[659,0.25],[0,0.1],
-    [587,0.15],[659,0.15],[784,0.3],[0,0.1],
-    [523,0.12],[659,0.12],[784,0.25],[0,0.1],
-    [880,0.12],[784,0.12],[659,0.3],[0,0.1],
-    [784,0.2],[659,0.15],[523,0.2],[0,0.1],
-    [659,0.15],[784,0.2],[988,0.3],[0,0.2],
-    [880,0.12],[784,0.12],[659,0.12],[523,0.25],[0,0.3],
+    [523,0.10],[659,0.10],[784,0.10],[1047,0.18],[0,0.05],
+    [880,0.10],[784,0.10],[659,0.15],[523,0.18],[0,0.10],
+    [784,0.09],[0,0.04],[784,0.09],[0,0.04],[880,0.18],[0,0.06],
+    [784,0.10],[659,0.10],[523,0.22],[0,0.10],
+    [523,0.10],[587,0.10],[659,0.10],[784,0.18],[0,0.05],
+    [1047,0.22],[0,0.05],[880,0.12],[784,0.12],[659,0.22],[0,0.10],
+    [659,0.09],[0,0.04],[784,0.09],[0,0.04],[880,0.09],[0,0.04],[1047,0.25],[0,0.12],
+    [784,0.15],[659,0.15],[523,0.30],[0,0.22],
   ];
 
   function startMusic() {
@@ -4615,18 +4708,45 @@ function applySpinPrize(prize) {
 function toggleSound() {
   Save.data.soundOn = !Save.data.soundOn;
   Save.save();
-  document.getElementById('sound-toggle-btn').textContent = Save.data.soundOn ? '🔊' : '🔇';
+  const btn = document.getElementById('sound-toggle-btn');
+  if (btn) {
+    const ic = btn.querySelector('.stb-icon');
+    if (ic) ic.textContent = Save.data.soundOn ? '\uD83D\uDD0A' : '\uD83D\uDD07';
+    btn.classList.toggle('off', !Save.data.soundOn);
+    btn.classList.toggle('on', !!Save.data.soundOn);
+  }
 }
 function toggleVibrate() {
   Save.data.vibrateOn = !Save.data.vibrateOn;
   Save.save();
-  document.getElementById('vibrate-toggle-btn').textContent = Save.data.vibrateOn ? '📳' : '📴';
+  const btn = document.getElementById('vibrate-toggle-btn');
+  if (btn) {
+    const ic = btn.querySelector('.stb-icon');
+    if (ic) ic.textContent = Save.data.vibrateOn ? '\uD83D\uDCF3' : '\uD83D\uDCF4';
+    btn.classList.toggle('off', !Save.data.vibrateOn);
+    btn.classList.toggle('on', !!Save.data.vibrateOn);
+  }
+  if (Save.data.vibrateOn) {
+    try { navigator.vibrate && navigator.vibrate([30, 50, 40]); } catch(e) {}
+  }
 }
 function updateSettingsUI() {
   const sb = document.getElementById('sound-toggle-btn');
   const vb = document.getElementById('vibrate-toggle-btn');
-  if (sb) sb.textContent = Save.data.soundOn !== false ? '🔊' : '🔇';
-  if (vb) vb.textContent = Save.data.vibrateOn !== false ? '📳' : '📴';
+  const soundOn = Save.data.soundOn !== false;
+  const vibrateOn = Save.data.vibrateOn !== false;
+  if (sb) {
+    const ic = sb.querySelector('.stb-icon');
+    if (ic) ic.textContent = soundOn ? '\uD83D\uDD0A' : '\uD83D\uDD07';
+    sb.classList.toggle('off', !soundOn);
+    sb.classList.toggle('on', soundOn);
+  }
+  if (vb) {
+    const ic = vb.querySelector('.stb-icon');
+    if (ic) ic.textContent = vibrateOn ? '\uD83D\uDCF3' : '\uD83D\uDCF4';
+    vb.classList.toggle('off', !vibrateOn);
+    vb.classList.toggle('on', vibrateOn);
+  }
 }
 
 // ── INIT ─────────────────────────────────────────────────
