@@ -86,7 +86,7 @@ const UPGRADES = [
   { id:'control', name:'Better Control', icon:'🎯', desc:'Smoother joystick response',      maxLevel:5, costs:[60,120,220,400,750]  },
   { id:'magnet',  name:'Coin Magnet',    icon:'🧲', desc:'Attract nearby coins',            maxLevel:4, costs:[100,200,400,800]     },
   { id:'shield',  name:'Shield',         icon:'🛡', desc:'Extra hit before crashing',       maxLevel:3, costs:[400,800,1500]        },
-  { id:'cannon',  name:'Cannon',         icon:'🔫', desc:'Unlocks ammo pickups & shooting', maxLevel:3, costs:[150,300,600] },
+  { id:'cannon',  name:'Cannon',         icon:'🔫', desc:'Increases ammo capacity (3→5→8→12)', maxLevel:3, costs:[150,300,600] },
 ];
 
 // ── LANGUAGES ────────────────────────────────────────────
@@ -788,7 +788,8 @@ let tutPhase = 0;  // 0=hint, 1=gap hint, 2=ammo hint, 3=done
 let isHolding = false;
 
 // ── AMMO CAPACITY ─────────────────────────────────────────
-function maxAmmo() { return [0, 4, 7, 10][Math.min(3, Save.data.upgrades.cannon)]; }
+// Base 3 bullets always available; cannon upgrade raises the cap
+function maxAmmo() { return [3, 5, 8, 12][Math.min(3, Save.data.upgrades.cannon)]; }
 
 // ── PLAYER ───────────────────────────────────────────────
 function createPlayer() {
@@ -1179,8 +1180,8 @@ function shoot() {
 function updateShootBtn() {
   const btn = document.getElementById('shoot-btn');
   if (!btn) return;
-  const hasCannon = Save.data.upgrades.cannon > 0 && currentLevel >= 3 && !isFreePlay;
-  if (!hasCannon || gameState !== 'playing') {
+  const hasCannon = !isFreePlay && gameState === 'playing';
+  if (!hasCannon) {
     btn.classList.add('hidden');
     return;
   }
@@ -1442,8 +1443,8 @@ function update(dt) {
   coinTimer -= dt;
   if (coinTimer <= 0) { spawnCoin(); coinTimer = 2.0 + Math.random() * 2.0; }
 
-  // ── SHOOT TARGETS spawn (with cannon, not in free play) ──
-  if (Save.data.upgrades.cannon > 0 && !isFreePlay) {
+  // ── SHOOT TARGETS spawn (from level 3+, not in free play) ──
+  if (currentLevel >= 3 && !isFreePlay) {
     targetTimer -= dt;
     if (targetTimer <= 0) {
       obstacles.push(createTarget());
@@ -1461,8 +1462,8 @@ function update(dt) {
     }
   }
 
-  // Ammo crate spawn (when cannon unlocked, not in free play)
-  if (Save.data.upgrades.cannon > 0 && !isFreePlay) {
+  // Ammo crate spawn (always available, not in free play)
+  if (!isFreePlay) {
     ammoTimer -= dt;
     if (ammoTimer <= 0) {
       ammoPickups.push({ x: W + 30, y: H * 0.15 + Math.random() * H * 0.7, anim: 0 });
