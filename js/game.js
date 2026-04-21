@@ -4569,18 +4569,20 @@ function showMissionCompleteToast(mission) {
   el.id = 'mission-toast';
   el.className = 'mission-toast';
   el.innerHTML =
-    '<div class="mt-stars">⭐ 🌟 ⭐</div>'
-    + '<div class="mt-title">✅ MISSION COMPLETE!</div>'
-    + '<div class="mt-label">' + mission.label + '</div>'
-    + '<div class="mt-rewards">+' + mission.coins + ' 🪙 &nbsp;·&nbsp; +' + mission.xp + ' XP</div>'
-    + '<div class="mt-confetti">🎉 🎊 🎉</div>';
+    '<div class="mt-check">✅</div>'
+    + '<div class="mt-body">'
+    +   '<div class="mt-title">Mission Complete!</div>'
+    +   '<div class="mt-label">' + mission.label + '</div>'
+    +   '<div class="mt-rewards">+' + mission.coins + ' 🪙 &nbsp;·&nbsp; +' + mission.xp + ' XP</div>'
+    + '</div>'
+    + '<div class="mt-stars">⭐⭐⭐</div>';
   document.body.appendChild(el);
 
-  // Fade out after 3s
+  // Slide back up after 2.8s
   setTimeout(() => {
-    el.style.animation = 'mt-fade-out 0.7s ease forwards';
-    setTimeout(() => { if (el.parentNode) el.remove(); }, 700);
-  }, 3200);
+    el.style.animation = 'mt-fade-out 0.5s ease forwards';
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 500);
+  }, 2800);
 }
 
 function claimMission(idx) {
