@@ -750,6 +750,7 @@ let bossAmmoWarningDone = false; // tracks whether pre-boss ammo drop has fired
 let distance, speed, sessionCoins, ammo;
 let frameId, lastTime;
 let shieldHits, shootCooldown, shootAutoTimer;
+let lastBulletHitPos = null; // track where bullet hit pillar for explosion
 let spawnTimer, coinTimer, ammoTimer, targetTimer, enemyTimer, shieldPickupTimer, diamondPickupTimer;
 let popups = []; // [{text, x, y, alpha, timer, color}]
 let clouds = [], stars = [], bgParticles = [];
@@ -1615,18 +1616,15 @@ function update(dt) {
         if (b.x > obs.x - obs.w / 2 - 8 && b.x < obs.x + obs.w / 2 + 8) {
           const inBody = b.y < gapTop || b.y > gapBot; // inside top or bottom pillar, not in the gap
           if (inBody) {
-            if (wpY !== null && Math.abs(b.y - wpY) < 45) {
-              pillarDestroyed = true; // direct hit on the glowing crack!
-            } else {
-              spawnParticles(b.x, b.y, '#a08060', 3); // small spark: hit body, wrong spot
-            }
-            return false; // bullet is always consumed when it hits the pillar body
+            pillarDestroyed = true; // any hit to the body destroys it!
+            lastBulletHitPos = { x: b.x, y: b.y }; // store hit position for explosion
+            return false; // bullet is consumed
           }
         }
         return true;
       });
       if (pillarDestroyed) {
-        const px = obs.x, py = obs.weakTop ? gapTop / 2 : gapBot + (H - gapBot) / 2;
+        const px = obs.x, py = lastBulletHitPos ? lastBulletHitPos.y : (obs.weakTop ? gapTop / 2 : gapBot + (H - gapBot) / 2);
         spawnParticles(px, py, '#8D6E63', 14);
         spawnParticles(px, py, '#FF9800', 8);
         screenShake = 0.3;
@@ -1635,6 +1633,7 @@ function update(dt) {
         sessionCoins += 8;
         Vibrate.buzz(35);
         popups.push({ text: '💥 +8', x: px, y: py - 24, alpha: 1, timer: 1.2, color: '#FF9800' });
+        lastBulletHitPos = null; // reset after use
         return false; // remove pillar
       }
       if (player.invincible <= 0) {
