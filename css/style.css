@@ -23,6 +23,7 @@ body {
 .screen.active { display: flex; }
 .hidden { display: none !important; }
 
+
 /* ── TUTORIAL MODAL ── */
 .tutorial-modal {
   position: fixed; inset: 0; z-index: 100;
@@ -104,7 +105,14 @@ body {
 .menu-content {
   position: relative; z-index: 1;
   display: flex; flex-direction: column; align-items: center;
-  gap: 9px; width: 100%; padding: 52px 20px 16px;
+  gap: 8px; width: 100%;
+  /* max-height + overflow-y lets the content scroll on small phones
+     (coins badge / settings buttons are position:absolute on the screen, not inside here) */
+  max-height: 100vh;
+  max-height: 100dvh; /* shrinks with mobile browser chrome on newer browsers */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: max(80px, calc(50vh - 295px)) 20px 30px;
 }
 .logo { text-align: center; }
 .logo-plane { font-size: 48px; margin-bottom: 4px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); animation: float 3s ease-in-out infinite; }
