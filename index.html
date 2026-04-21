@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-<link rel="stylesheet" href="css/style.css?v=38">
+<link rel="stylesheet" href="css/style.css?v=39">
 </head>
 <body>
 
@@ -177,20 +177,100 @@
   </div>
 </div>
 
-<!-- HOW TO PLAY SCREEN -->
+<!-- HOW TO PLAY SCREEN — single scrollable page -->
 <div id="screen-howto" class="screen">
   <div class="howto-wrap">
     <div class="howto-header">
       <button class="howto-back-btn" onclick="closeHowTo()">← BACK</button>
       <div class="howto-title">❓ HOW TO PLAY</div>
-      <div class="howto-page-ind"><span id="howto-page-num">1</span> / <span id="howto-page-total">6</span></div>
+      <div style="width:72px"></div>
     </div>
-    <div id="howto-content" class="howto-content"></div>
-    <div class="howto-nav">
-      <button id="howto-prev" class="howto-nav-btn" onclick="howToNav(-1)" disabled>‹ PREV</button>
-      <div id="howto-dots" class="howto-dots"></div>
-      <button id="howto-next" class="howto-nav-btn" onclick="howToNav(1)">NEXT ›</button>
-    </div>
+
+    <div class="howto-scroll">
+
+      <!-- ✋ CONTROLS -->
+      <div class="htp-sec">
+        <div class="htp-sec-title" style="border-color:#42A5F5;color:#42A5F5">✋ CONTROLS</div>
+        <div class="htp-ctrl-row">
+          <div class="htp-phone-art">
+            <div class="htp-pa-body">
+              <div class="htp-pa-plane">✈️</div>
+              <div class="htp-pa-hint">hold ↑ / release ↓</div>
+            </div>
+          </div>
+          <div class="htp-items">
+            <div class="htp-item"><span class="htp-ico">👆</span><span><b>Hold</b> screen → fly UP</span></div>
+            <div class="htp-item"><span class="htp-ico">🖐️</span><span><b>Release</b> → glide DOWN</span></div>
+            <div class="htp-item"><span class="htp-ico">🔫</span><span>Tap cannon → <b>SHOOT</b></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🔥 SHOOTING — most important section -->
+      <div class="htp-sec htp-sec-fire">
+        <div class="htp-sec-title" style="border-color:#FF7043;color:#FF7043">🔥 HOW TO DESTROY PILLARS</div>
+
+        <!-- Mini pillar diagram -->
+        <div class="htp-pillar-diagram">
+          <div class="htp-pillar-top">
+            <div class="htp-crack-box">
+              <span class="htp-crack-emoji">🔥</span>
+              <div class="htp-crack-arrow">◄ SHOOT THE CRACK!</div>
+            </div>
+          </div>
+          <div class="htp-gap-zone"><span style="font-size:20px">✈️</span><span> fly through here</span></div>
+          <div class="htp-pillar-bot"></div>
+        </div>
+
+        <div class="htp-items">
+          <div class="htp-item htp-item-fire"><span class="htp-ico">🔥</span><span>Some pillars have a <b>glowing orange crack</b> near the gap edge</span></div>
+          <div class="htp-item htp-item-fire"><span class="htp-ico">🎯</span><span><b>Aim at the crack</b> and shoot — the whole pillar explodes!</span></div>
+          <div class="htp-item"><span class="htp-ico">⚠️</span><span>Hitting the wall anywhere else just <b>absorbs</b> your bullet</span></div>
+          <div class="htp-item"><span class="htp-ico">💰</span><span>Destroying a pillar earns <b>+8 coins</b></span></div>
+        </div>
+      </div>
+
+      <!-- ✅ COLLECT -->
+      <div class="htp-sec">
+        <div class="htp-sec-title" style="border-color:#FFA726;color:#FFA726">✅ COLLECT THESE</div>
+        <div class="htp-collectibles">
+          <div class="htp-col-item"><div class="htp-col-icon coin-lg" style="width:28px;height:28px;font-size:13px;border-width:2.5px"></div><div class="htp-col-lbl">Coins</div></div>
+          <div class="htp-col-item"><div class="htp-col-icon" style="background:#00eaff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:16px">💎</div><div class="htp-col-lbl">Diamond</div></div>
+          <div class="htp-col-item"><div class="htp-col-icon" style="font-size:24px">🎁</div><div class="htp-col-lbl">Mystery Box</div></div>
+          <div class="htp-col-item"><div class="htp-col-icon" style="font-size:24px">🛡️</div><div class="htp-col-lbl">Shield</div></div>
+          <div class="htp-col-item"><div class="htp-col-icon" style="font-size:24px">🚀</div><div class="htp-col-lbl">Ammo</div></div>
+        </div>
+        <div class="htp-items" style="margin-top:10px">
+          <div class="htp-item"><span class="htp-ico">💎</span><span>Diamonds are <b>rare</b> — collect every one you see!</span></div>
+          <div class="htp-item"><span class="htp-ico">🛡️</span><span>Shield absorbs <b>one crash</b> — very valuable!</span></div>
+        </div>
+      </div>
+
+      <!-- ☠️ DANGERS -->
+      <div class="htp-sec">
+        <div class="htp-sec-title" style="border-color:#EF5350;color:#EF5350">☠️ AVOID THESE</div>
+        <div class="htp-items">
+          <div class="htp-item htp-item-danger"><span class="htp-ico">🟫</span><span><b>Pillars</b> — fly through the gap, NOT the walls</span></div>
+          <div class="htp-item htp-item-danger"><span class="htp-ico">🔴</span><span><b>Spike Balls</b> — dodge or shoot for +2 coins</span></div>
+          <div class="htp-item htp-item-danger"><span class="htp-ico">🚁</span><span><b>Drones &amp; Missiles</b> — shoot or dodge</span></div>
+          <div class="htp-item htp-item-danger"><span class="htp-ico">☝️</span><span>Don't touch the <b>ceiling or floor</b>!</span></div>
+          <div class="htp-item htp-item-danger"><span class="htp-ico">👹</span><span><b>Boss every 10th level</b> — stock up on ammo first!</span></div>
+        </div>
+      </div>
+
+      <!-- ⚔️ REWARDS -->
+      <div class="htp-sec" style="margin-bottom:30px">
+        <div class="htp-sec-title" style="border-color:#AB47BC;color:#AB47BC">⚔️ PROGRESS &amp; REWARDS</div>
+        <div class="htp-items">
+          <div class="htp-item"><span class="htp-ico">🌍</span><span><b>70 levels</b> across 7 worlds — Sky, Forest, Candy, Ice &amp; more</span></div>
+          <div class="htp-item"><span class="htp-ico">⚔️</span><span><b>Battle Pass</b> — complete daily missions → earn XP → tier rewards</span></div>
+          <div class="htp-item"><span class="htp-ico">🎰</span><span><b>Daily Spin</b> — free spin every 24 hours for coins &amp; bonuses</span></div>
+          <div class="htp-item"><span class="htp-ico">🎁</span><span><b>Daily Gift</b> — log in every day for a coin bonus streak!</span></div>
+        </div>
+        <button class="btn-play" style="margin-top:16px;max-width:220px;font-size:17px;padding:13px 32px" onclick="closeHowTo()">✈️ LET'S FLY!</button>
+      </div>
+
+    </div><!-- /howto-scroll -->
   </div>
 </div>
 

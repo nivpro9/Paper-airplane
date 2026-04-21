@@ -2174,31 +2174,85 @@ function drawObstacle(obs) {
     const topH = obs.gapY - obs.gap / 2;
     const botY = obs.gapY + obs.gap / 2;
     _drawWallForBiome(obs.x, obs.w, topH, botY, obs.seed || 0);
-    // Draw weak-point glow (pulsing orange crack)
+    // Draw weak-point — large, unmissable glowing crack with arrow + SHOOT! label
     if (obs.hasWeakPoint) {
-      const wpY = obs.weakTop ? topH - 10 : botY + 10;
-      const pulse = 0.55 + 0.45 * Math.sin(performance.now() * 0.005);
+      const wpY   = obs.weakTop ? topH - 10 : botY + 10;
+      const t     = performance.now() * 0.004;
+      const pulse = 0.65 + 0.35 * Math.sin(t);          // main glow pulse
+      const ring  = 0.4  + 0.6  * Math.sin(t * 1.5);   // outer ring pulse
       ctx.save();
+
+      // ── Outer pulsing ring ──
+      ctx.globalAlpha = ring * 0.7;
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.arc(obs.x, wpY, 38 + ring * 10, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // ── Large radial glow ──
       ctx.globalAlpha = pulse;
-      // Bigger, brighter glow — visible on any biome background
-      const gr = ctx.createRadialGradient(obs.x, wpY, 0, obs.x, wpY, 24);
-      gr.addColorStop(0, 'rgba(255,230,0,1.0)');
-      gr.addColorStop(0.4, 'rgba(255,120,0,0.8)');
-      gr.addColorStop(1, 'rgba(255,60,0,0)');
+      const gr = ctx.createRadialGradient(obs.x, wpY, 0, obs.x, wpY, 48);
+      gr.addColorStop(0,   'rgba(255,255,120,1.0)');
+      gr.addColorStop(0.25,'rgba(255,200,0,0.9)');
+      gr.addColorStop(0.6, 'rgba(255,80,0,0.55)');
+      gr.addColorStop(1,   'rgba(255,0,0,0)');
       ctx.fillStyle = gr;
-      ctx.beginPath(); ctx.arc(obs.x, wpY, 24, 0, Math.PI * 2); ctx.fill();
-      // Bright white center flash
-      ctx.globalAlpha = pulse * 0.6;
-      ctx.fillStyle = 'rgba(255,255,200,0.9)';
-      ctx.beginPath(); ctx.arc(obs.x, wpY, 6, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = pulse;
-      // Crack lines (star pattern)
-      ctx.strokeStyle = 'rgba(255,240,80,0.95)'; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.arc(obs.x, wpY, 48, 0, Math.PI * 2); ctx.fill();
+
+      // ── White-hot center ──
+      ctx.globalAlpha = pulse * 0.85;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(obs.x, wpY, 9, 0, Math.PI * 2); ctx.fill();
+
+      // ── Crack lines ──
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = 'rgba(255,250,100,1)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(obs.x - 10, wpY - 6); ctx.lineTo(obs.x + 2, wpY); ctx.lineTo(obs.x - 5, wpY + 8);
-      ctx.moveTo(obs.x + 5, wpY - 9); ctx.lineTo(obs.x + 12, wpY + 4);
-      ctx.moveTo(obs.x - 4, wpY - 11); ctx.lineTo(obs.x + 4, wpY + 11);
+      ctx.moveTo(obs.x - 14, wpY - 8); ctx.lineTo(obs.x + 3, wpY); ctx.lineTo(obs.x - 7, wpY + 12);
+      ctx.moveTo(obs.x + 6,  wpY - 13); ctx.lineTo(obs.x + 18, wpY + 7);
+      ctx.moveTo(obs.x - 5,  wpY - 16); ctx.lineTo(obs.x + 7,  wpY + 16);
       ctx.stroke();
+
+      // ── Arrow pointing at the crack (from outside the pillar toward it) ──
+      const arrowAbove = obs.weakTop; // arrow floats in the gap pointing UP toward crack
+      const arrowBaseY = arrowAbove ? wpY + 30 : wpY - 30; // start of arrow shaft (in the gap)
+      const arrowTipY  = arrowAbove ? wpY + 6  : wpY - 6;  // tip near the crack
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle   = '#FFD700';
+      ctx.strokeStyle = '#FF8C00'; ctx.lineWidth = 2;
+      // shaft
+      ctx.beginPath();
+      ctx.moveTo(obs.x, arrowBaseY); ctx.lineTo(obs.x, arrowTipY + (arrowAbove ? -14 : 14));
+      ctx.stroke();
+      // arrowhead triangle
+      ctx.beginPath();
+      if (arrowAbove) {
+        ctx.moveTo(obs.x,      arrowTipY);
+        ctx.lineTo(obs.x - 10, arrowTipY + 14);
+        ctx.lineTo(obs.x + 10, arrowTipY + 14);
+      } else {
+        ctx.moveTo(obs.x,      arrowTipY);
+        ctx.lineTo(obs.x - 10, arrowTipY - 14);
+        ctx.lineTo(obs.x + 10, arrowTipY - 14);
+      }
+      ctx.fill();
+
+      // ── "SHOOT!" label ──
+      const lblY = arrowAbove ? arrowBaseY + 16 : arrowBaseY - 6;
+      ctx.globalAlpha = pulse;
+      ctx.font = 'bold 11px Arial';
+      ctx.textAlign = 'center';
+      // Dark background pill for readability
+      const lblW = 46, lblH = 14;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(obs.x - lblW/2, lblY - lblH + 2, lblW, lblH, 4)
+                    : ctx.rect(obs.x - lblW/2, lblY - lblH + 2, lblW, lblH);
+      ctx.fill();
+      ctx.fillStyle = '#FFD700';
+      ctx.fillText('💥 SHOOT!', obs.x, lblY);
+
       ctx.restore();
     }
   } else if (obs.type === 'fan') {
@@ -4758,19 +4812,14 @@ const HOW_TO_PAGES = [
 ];
 
 function showHowTo() {
-  howToPageIdx = 0;
   showScreen('screen-howto');
-  renderHowToPage();
+  // Scroll back to top every time it's opened
+  const sc = document.querySelector('.howto-scroll');
+  if (sc) sc.scrollTop = 0;
 }
 
 function closeHowTo() {
   showScreen('screen-menu');
-}
-
-function howToNav(dir) {
-  if (dir > 0 && howToPageIdx >= HOW_TO_PAGES.length - 1) { closeHowTo(); return; }
-  howToPageIdx = Math.max(0, Math.min(HOW_TO_PAGES.length - 1, howToPageIdx + dir));
-  renderHowToPage();
 }
 
 function renderHowToPage() {
