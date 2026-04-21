@@ -634,24 +634,24 @@ function initLangSelector() {
 
 // ── SAVE ─────────────────────────────────────────────────
 const Save = {
-  KEY: 'pfe_v3', // DEBUG BUILD - fresh save with all unlocked
+  KEY: 'pfe_v2',
   COOKIE_DAYS: 365,
   defaults: {
-    coins: 999999, bestLevel: 70, activeVehicle: 9,
-    ownedVehicles: [0,1,2,3,4,5,6,7,8,9],
-    upgrades: { control:5, magnet:5, shield:5, cannon:6 },
-    currentLevel: 1, tutorialDone: true,
+    coins: 0, bestLevel: 1, activeVehicle: 0,
+    ownedVehicles: [0],
+    upgrades: { control:0, magnet:0, shield:0, cannon:0 },
+    currentLevel: 1, tutorialDone: false,
     levelBests: {}, prestige: 0,
     dataVersion: 2,
-    lastSpin: 0, spinShields: 0, spinAmmo: 0, boughtAmmo: 0, savedAmmo: 100,
+    lastSpin: 0, spinShields: 0, spinAmmo: 0, boughtAmmo: 0, savedAmmo: 0,
     spinSpeed: 0, spinDoubleCoins: 0,
     lastLogin: 0, loginStreak: 0,
     gameCount: 0,
     bpXP: 0, bpClaimed: [], missions: [], missionsDate: '',
-    diamonds: 999,
+    diamonds: 0,
     freePlayBest: 0,
-    activeSkin: 8,
-    ownedSkins: [0,1,2,3,4,5,6,7,8],
+    activeSkin: 0,
+    ownedSkins: [0],
     soundOn: true,
     vibrateOn: true,
   },
