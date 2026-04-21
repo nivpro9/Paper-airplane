@@ -77,10 +77,10 @@ function generateLevels() {
     return {
       id:           i,
       biome:        Math.min(6, Math.floor(idx / 10)),
-      goal:         Math.round(250 + Math.pow(t, 0.55) * 3750), // 250 → 4000 m
-      speed:        (3 + t * 6) * 0.88,                           // 2.64 → 7.92 px/frame (-12%)
-      gapFraction:  (0.42 - t * 0.15) * 1.12,                    // 0.47 → 0.30 H (+12% gap)
-      spawnInterval:Math.max(0.65, (2.0 - t * 1.35) * 1.12),     // 2.24 → 0.73 s (+12% interval)
+      goal:         Math.round(250 + Math.pow(t, 0.55) * 3000), // 250 → 3000 m (easier goal)
+      speed:        (2.4 + t * 3.6) * 0.95,                       // 2.28 → 5.88 px/frame (slower overall, -5%)
+      gapFraction:  (0.44 - t * 0.08) * 1.15,                    // 0.506 → 0.414 H (larger gaps, easier)
+      spawnInterval:Math.max(1.0, (2.2 - t * 0.8) * 1.15),       // 2.53 → 1.38 s (slower spawn, more time to react)
       fanChance:    i < 10 ? 0 : Math.min(0.25, (i - 10) * 0.018),
       birdChance:   i < 20 ? 0 : Math.min(0.25, (i - 20) * 0.015),
     };
@@ -849,12 +849,12 @@ function createPillar() {
   // 1-in-3 pillars have a shootable weak point (glowing crack)
   const hasWeakPoint = Math.random() < 0.33;
   const weakTop = hasWeakPoint ? (Math.random() < 0.5) : false; // weak point on top or bottom pillar
-  return { type:'pillar', x: W + 40, gapY, gap, w: 52, scored: false, seed: Math.floor(Math.random() * 99991),
+  return { type:'pillar', x: W + 140, gapY, gap, w: 52, scored: false, seed: Math.floor(Math.random() * 99991),
            hasWeakPoint, weakTop };
 }
 function createFan() {
   const side = Math.random() < 0.5 ? 'top' : 'bottom';
-  return { type:'fan', x: W + 40, y: side === 'top' ? H * 0.06 : H * 0.86, side, angle: 0, w: 44, h: 44, windForce: (Math.random() < 0.5 ? 1 : -1) * 2.5 };
+  return { type:'fan', x: W + 140, y: side === 'top' ? H * 0.06 : H * 0.86, side, angle: 0, w: 44, h: 44, windForce: (Math.random() < 0.5 ? 1 : -1) * 2.5 };
 }
 // ── SHOOT TARGETS ─────────────────────────────────────────
 const TARGET_TYPES = [
@@ -876,7 +876,7 @@ function createBird() {
 }
 function createSpikeBall() {
   const y = H * 0.15 + Math.random() * H * 0.7;
-  return { type:'spikeball', x: W + 40, y, baseY: y, r: 18, anim: Math.random() * Math.PI * 2, vBounce: (Math.random() < 0.5 ? 1 : -1) };
+  return { type:'spikeball', x: W + 140, y, baseY: y, r: 18, anim: Math.random() * Math.PI * 2, vBounce: (Math.random() < 0.5 ? 1 : -1) };
 }
 
 // ── AMMO PICKUP ──────────────────────────────────────────
