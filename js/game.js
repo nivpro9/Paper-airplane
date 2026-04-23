@@ -5134,8 +5134,9 @@ window.addEventListener('load', () => {
   document.getElementById('bpBtn').addEventListener('click', showBP);
   document.getElementById('levelsBtn').addEventListener('click', showLevelSelect);
   document.getElementById('levelsBackBtn').addEventListener('click', showMenu);
-  document.getElementById('shopBtn').addEventListener('click', showShop);
-  document.getElementById('goShopBtn').addEventListener('click', showShop);
+  // shopBtn removed (upgrades disabled)
+  const goShopBtn = document.getElementById('goShopBtn');
+  if (goShopBtn) goShopBtn.addEventListener('click', showShop);
   document.getElementById('shopBackBtn').addEventListener('click', showMenu);
   document.getElementById('nextLevelBtn').addEventListener('click', () => beginLevel(Save.data.currentLevel));
   document.getElementById('lcShopBtn').addEventListener('click', showShop);

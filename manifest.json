@@ -2,7 +2,7 @@
   "id": "paper-airplane-game",
   "name": "Paper Airplane",
   "short_name": "Paper Airplane",
-  "description": "Fly your paper plane through 70 levels! Dodge pillars, collect coins, unlock vehicles and upgrades.",
+  "description": "Fly your paper plane through 100 epic levels! Dodge pillars, collect coins, unlock vehicles and defeat boss enemies.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
